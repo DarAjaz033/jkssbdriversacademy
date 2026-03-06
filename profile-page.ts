@@ -1,11 +1,17 @@
-import { onAuthChange, getCurrentUser, signOut, clearSessionToken } from './auth-service';
+import { onAuthChange, getCurrentUser, signOut, clearSessionToken, isPremiumUser } from './auth-service';
 import { db } from './firebase-config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 class ProfilePage {
   constructor() {
     this.setupSignOut();
     this.checkAuth();
+    this.exposeGlobalFunctions();
+  }
+
+  private exposeGlobalFunctions(): void {
+    (window as any).handleProfilePicUpload = this.handleProfilePicUpload.bind(this);
   }
 
   private checkAuth(): void {
@@ -110,9 +116,80 @@ class ProfilePage {
                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
              </svg> Email`;
       }
+
+      // Premium Status logic
+      const premium = await isPremiumUser(user.uid);
+      if (premium) {
+        this.showInline('p-premium-badge');
+        this.showInline('p-star-badge');
+        this.showInline('p-edit-avatar');
+        this.hide('premium-info-banner');
+      } else {
+        this.hide('p-premium-badge');
+        this.hide('p-star-badge');
+        this.hide('p-edit-avatar');
+        this.show('premium-info-banner');
+      }
+
     } catch (err) {
       console.warn('[Profile] Firestore load failed, using Auth data:', err);
     }
+  }
+
+  private async handleProfilePicUpload(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const user = getCurrentUser();
+    if (!user) return;
+
+    try {
+      const storage = getStorage();
+      const storageRef = ref(storage, `avatars/${user.uid}`);
+
+      // Disable button during upload
+      const btn = document.getElementById('p-edit-avatar') as HTMLButtonElement;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Uploading...';
+      }
+
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update Firestore
+      await updateDoc(doc(db, 'users', user.uid), {
+        photoURL: downloadURL
+      });
+
+      // Update UI
+      this.setPhoto(downloadURL);
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="camera" width="12" height="12" style="margin-right:2px;"></i> Edit';
+        this.refreshIcons();
+      }
+
+      // Show toast (assuming showToast is available or we use alert)
+      // Since we are in profile-page.ts, we might need a local toast or just use alert
+      alert('Profile picture updated successfully!');
+
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error);
+      alert('Failed to upload image: ' + error.message);
+      const btn = document.getElementById('p-edit-avatar') as HTMLButtonElement;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="camera" width="12" height="12" style="margin-right:2px;"></i> Edit';
+        this.refreshIcons();
+      }
+    }
+  }
+
+  private showInline(id: string): void {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'inline-flex';
   }
 
   private setPhoto(url: string): void {

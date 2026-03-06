@@ -178,6 +178,31 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
+    /* -- Premium Badges -- */
+    .premium-badge {
+      display: none; align-items: center; gap: 5px;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      color: #fff; padding: 4px 12px; border-radius: 8px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-top: 6px;
+      box-shadow: 0 4px 12px rgba(217,119,6,0.3);
+    }
+    .star-badge {
+      display: none; position: absolute; bottom: -4px; right: -4px;
+      background: #fbbf24; color: #78350f; width: 24px; height: 24px;
+      border-radius: 50%; align-items: center; justify-content: center;
+      border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 10; font-size: 13px;
+    }
+    .avatar-outer { position: relative; }
+    .edit-avatar-btn {
+      display: none; position: absolute; bottom: -12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.1);
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      color: #1c1917; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 5;
+    }
+
     /* ── Floating info card ─────────── */
     .floating-card {
       background: rgba(255, 255, 255, 0.92);
@@ -655,12 +680,18 @@
                 <span id="avatar-initials">?</span>
               </div>
             </div>
+            <div id="p-star-badge" class="star-badge">&#11088;</div>
+            <button id="p-edit-avatar" class="edit-avatar-btn" onclick="document.getElementById('p-avatar-input').click()">&#128247; Edit</button>
+            <input type="file" id="p-avatar-input" style="display:none" accept="image/*" onchange="handleProfilePicUpload(this)">
           </div>
           <div class="hero-name" id="profile-name"></div>
           <div class="hero-email" id="profile-email"></div>
-          <span class="login-badge email" id="login-badge">
-            <i data-lucide="mail" width="11" height="11"></i> Email
-          </span>
+          <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:6px;">
+            <span class="login-badge email" id="login-badge">
+              <i data-lucide="mail" width="11" height="11"></i> Email
+            </span>
+            <div id="p-premium-badge" class="premium-badge">&#10024; Premium</div>
+          </div>
         </div>
 
         <!-- Floating info card -->
@@ -682,6 +713,20 @@
             <span class="info-value" id="ic-provider">—</span>
           </div>
         </div>
+      </div>
+
+
+      <!-- Premium Info Banner (shown for free users) -->
+      <div id="premium-info-banner" class="premium-info-banner" style="display:none;">
+        <h4>&#128274; Premium Features</h4>
+        <ul>
+          <li>&#9733; Star Badge on your profile picture</li>
+          <li>&#128247; Change your profile photo</li>
+          <li>&#129302; AI Agent access</li>
+          <li>&#127891; Unlock full course content</li>
+          <li>&#9989; Premium member badge</li>
+        </ul>
+        <a href="./index.html#courses" class="unlock-btn">&#128274; Unlock Premium &rarr;</a>
       </div>
 
       <!-- Account (only for logged-in) -->

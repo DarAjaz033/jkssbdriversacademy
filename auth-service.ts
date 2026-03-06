@@ -13,19 +13,28 @@ import {
   fetchSignInMethodsForEmail as fetchSignInMethods
 } from 'firebase/auth';
 import { auth, db } from './firebase-config';
-import { doc, setDoc, getDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let confirmationResult: ConfirmationResult | null = null;
 
-export const initRecaptcha = (containerId: string) => {
-  if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-      size: 'invisible',
-      callback: () => {
-      }
-    });
+export const clearRecaptcha = () => {
+  if (recaptchaVerifier) {
+    try { recaptchaVerifier.clear(); } catch { }
+    recaptchaVerifier = null;
   }
+  // Also clear the DOM container so reCAPTCHA can re-render
+  const container = document.getElementById('recaptcha-container');
+  if (container) container.innerHTML = '';
+};
+
+export const initRecaptcha = (containerId: string) => {
+  // Always clear stale verifier first to avoid invalid-app-credential
+  clearRecaptcha();
+  recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+    size: 'invisible',
+    callback: () => { }
+  });
   return recaptchaVerifier;
 };
 
@@ -68,9 +77,9 @@ export const resetPassword = async (email: string) => {
   }
 };
 
-export const signInWithPhone = async (phoneNumber: string) => {
+export const signInWithPhone = async (phoneNumber: string, containerId: string = 'recaptcha-container') => {
   try {
-    const appVerifier = initRecaptcha('recaptcha-container');
+    const appVerifier = initRecaptcha(containerId);
     confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
     return { success: true };
   } catch (error: any) {
@@ -224,6 +233,41 @@ export const clearSessionToken = async (uid: string) => {
     localStorage.removeItem(SESSION_TOKEN_KEY);
     await setDoc(doc(db, 'users', uid), { sessionToken: null }, { merge: true });
   } catch { }
+};
+
+// ── Premium User Check ──────────────────────────────────────────────────────
+export const isPremiumUser = async (userId: string): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, 'purchases'),
+      where('userId', '==', userId),
+      where('status', '==', 'completed')
+    );
+    const querySnapshot = await getDocs(q);
+
+    // If any completed purchase exists, they are premium
+    // (In a real app, you might check expiresAt here too, but for "premium badge" 
+    // usually any purchase counts or we follow fetchUserEnrollments logic)
+    const now = new Date();
+    let hasActive = false;
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (!data.expiresAt) {
+        hasActive = true;
+      } else {
+        const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        if (now <= expiryDate) {
+          hasActive = true;
+        }
+      }
+    });
+
+    return hasActive;
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
 };
 
 // ── Check if email is registered (for password reset) ──────────────────────

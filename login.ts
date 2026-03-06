@@ -6,7 +6,9 @@ import {
     generateAndSaveSessionToken,
     checkEmailRegistered,
     resetPassword,
-    onAuthChange
+    onAuthChange,
+    signInWithPhone,
+    verifyPhoneCode
 } from './auth-service';
 
 // ─── Flag: login is in progress (prevent onAuthChange race) ──────────────────
@@ -28,11 +30,15 @@ function showToast(message: string, type: 'success' | 'error' | 'info' = 'info')
 
 // ─── Tab Switching ────────────────────────────────────────────────────────────
 
-function switchTab(tab: 'signin' | 'signup') {
+function switchTab(tab: 'signin' | 'signup' | 'phone') {
     document.getElementById('panel-signin')!.classList.toggle('active', tab === 'signin');
     document.getElementById('panel-signup')!.classList.toggle('active', tab === 'signup');
+    document.getElementById('panel-phone')!.classList.toggle('active', tab === 'phone');
+
     document.getElementById('tab-signin')!.classList.toggle('active', tab === 'signin');
     document.getElementById('tab-signup')!.classList.toggle('active', tab === 'signup');
+    document.getElementById('tab-phone')!.classList.toggle('active', tab === 'phone');
+
     document.getElementById('auth-tabs')!.style.display = 'flex';
     document.getElementById('forgot-section')!.classList.remove('active');
     clearErrors();
@@ -211,6 +217,52 @@ async function handleForgotPassword() {
     }
 }
 
+// ─── Phone Auth ───────────────────────────────────────────────────────────────
+
+async function handlePhoneSignIn() {
+    clearErrors();
+    const phone = (document.getElementById('ph-number') as HTMLInputElement).value.trim();
+    if (!phone) return showFieldError('ph-error', 'Please enter your phone number');
+    if (!phone.startsWith('+')) return showFieldError('ph-error', 'Include country code (e.g., +91)');
+
+    const btn = document.getElementById('ph-send-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Sending OTP...';
+
+    const result = await signInWithPhone(phone, 'recaptcha-container');
+
+    if (result.success) {
+        document.getElementById('phone-input-phase')!.style.display = 'none';
+        document.getElementById('phone-otp-phase')!.style.display = 'block';
+        showToast('OTP sent successfully!', 'success');
+    } else {
+        btn.disabled = false;
+        btn.textContent = 'Send OTP';
+        showFieldError('ph-error', result.error || 'Failed to send OTP.');
+    }
+}
+
+async function handleVerifyOTP() {
+    clearErrors();
+    const code = (document.getElementById('ph-otp') as HTMLInputElement).value.trim();
+    if (!code) return showFieldError('ph-otp-error', 'Please enter the 6-digit code');
+
+    const btn = document.getElementById('ph-verify-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    const result = await verifyPhoneCode(code);
+
+    if (result.success && result.user) {
+        btn.textContent = 'Success! Redirecting...';
+        await afterAuth(result.user);
+    } else {
+        btn.disabled = false;
+        btn.textContent = 'Verify & login';
+        showFieldError('ph-otp-error', result.error || 'Invalid OTP code.');
+    }
+}
+
 // ─── Expose to window ─────────────────────────────────────────────────────────
 
 (window as any).switchTab = switchTab;
@@ -220,6 +272,8 @@ async function handleForgotPassword() {
 (window as any).handleSignUp = handleSignUp;
 (window as any).handleGoogle = handleGoogle;
 (window as any).handleForgotPassword = handleForgotPassword;
+(window as any).handlePhoneSignIn = handlePhoneSignIn;
+(window as any).handleVerifyOTP = handleVerifyOTP;
 
 // ─── Redirect already-logged-in users ────────────────────────────────────────
 // ─── Redirect already-logged-in users ────────────────────────────────────────
