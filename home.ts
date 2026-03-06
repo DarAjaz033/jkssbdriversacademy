@@ -1,4 +1,4 @@
-import { getCurrentUser, onAuthChange } from './auth-service';
+import { getCurrentUser, onAuthChange, isPremiumUser } from './auth-service';
 import { escapeHtml } from './utils/escape-html';
 import { getCourses, Course as AdminCourse } from './admin-service';
 import { openDirectPaymentModal } from './payment-service';
@@ -155,7 +155,13 @@ function openCourseModal(course: Course): void {
     }
 
     if (course.paymentLink) {
-      openDirectPaymentModal(course as AdminCourse, user.uid);
+      const btn = overlay.querySelector('#cdm-buy-btn-trigger');
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Opening...';
+        window.open(course.paymentLink, '_blank');
+        setTimeout(() => btn.innerHTML = originalText, 2000);
+      }
     } else {
       window.location.href = `./course-purchase.html?id=${course.id}`;
     }
@@ -173,6 +179,7 @@ class HomePage {
   private currentUser: any = null;
 
   constructor() {
+    this.updateProfileBadge();
     this.coursesContainer = document.querySelector('.course-cards');
     this.init();
     this.setupExpandTopicsDelegation();
@@ -483,4 +490,28 @@ class HomePage {
 // Initialize only if we're on a page with course-cards
 if (document.querySelector('.course-cards')) {
   new HomePage();
+
+  private async updateProfileBadge(): Promise<void> {
+    const badge = document.getElementById('home-profile-badge');
+    if (!badge) return;
+
+    if (!this.currentUser) {
+       badge.className = 'home-profile-badge guest';
+       badge.innerHTML = '👤';
+       badge.style.display = 'flex';
+       return;
+    }
+
+    const premium = await isPremiumUser(this.currentUser.uid);
+    if (premium) {
+      badge.className = 'home-profile-badge premium';
+      badge.innerHTML = '⭐';
+      badge.style.display = 'flex';
+    } else {
+      badge.className = 'home-profile-badge guest';
+      badge.innerHTML = '👤';
+      badge.style.display = 'flex';
+    }
+  }
+
 }
