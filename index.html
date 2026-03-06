@@ -606,8 +606,8 @@
     }
     .home-profile-badge {
       position: absolute;
-      bottom: -4px;
-      right: -4px;
+      top: 0px;
+      right: 0px;
       width: 14px;
       height: 14px;
       border-radius: 50%;
@@ -648,12 +648,10 @@
           <button class="icon-btn theme-toggle-nav" id="theme-toggle-nav"
             style="width: 32px; height: 32px; border: none; background: transparent; backdrop-filter: none; box-shadow: none; display: flex !important; flex-shrink: 0;">
             <i data-lucide="palette" style="width: 18px; height: 18px; color: var(--app-bar-text);"></i>
-          </div>
-        </button>
+          </button>
         </div>
-        <button class="icon-btn" id="profile-btn">
-          <div class="home-profile-wrapper">
-            <div id="home-profile-badge" class="home-profile-badge"></div>
+        <button class="icon-btn" id="profile-btn" style="position: relative;">
+          <div id="home-profile-badge" class="home-profile-badge"></div>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="100%">

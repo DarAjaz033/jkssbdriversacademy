@@ -29,20 +29,20 @@
     })();
   </script>
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
-  
+
+
+
+
+
+
+
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -178,7 +178,7 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    
+
     /* -- Premium Features Styling -- */
     .premium-info-banner {
       margin: 20px 16px;
@@ -195,68 +195,130 @@
     .premium-info-banner::before {
       content: '';
       position: absolute;
-      top: 0; left: -100%;
-      width: 50%; height: 100%;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
       background: linear-gradient(to right, transparent, rgba(251, 191, 36, 0.1), transparent);
       transform: skewX(-25deg);
       animation: sweep 4s infinite;
     }
-    @keyframes sweep { 100% { left: 200%; } }
+
+    @keyframes sweep {
+      100% {
+        left: 200%;
+      }
+    }
 
     .premium-info-banner h4 {
       margin: 0 0 15px;
-      font-size: 15px; font-weight: 800; color: #fbbf24;
-      text-transform: uppercase; letter-spacing: 1px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .premium-points {
-      display: grid; gap: 10px;
+      display: grid;
+      gap: 10px;
     }
+
     .premium-point {
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.85); /* Faded look but visible */
-      padding: 10px 14px; background: rgba(255,255,255,0.02);
-      border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);
+      color: #71717a;
+      font-weight: 800;
+      /* Lighter grey for better visibility */
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     /* Blinking Animations */
     @keyframes blink-slow {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
     }
+
     @keyframes blink-gold {
-      0%, 100% { background: #fbbf24; color: #000; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
-      50% { background: #d97706; color: #fff; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
+
+      0%,
+      100% {
+        background: #fbbf24;
+        color: #000;
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+      }
+
+      50% {
+        background: #d97706;
+        color: #fff;
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+      }
     }
+
     @keyframes blink-red {
-      0%, 100% { background: #ef4444; color: #fff; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-      50% { background: #991b1b; color: #fecaca; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); }
+
+      0%,
+      100% {
+        background: #ef4444;
+        color: #fff;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      }
+
+      50% {
+        background: #991b1b;
+        color: #fecaca;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+      }
     }
 
     .not-premium-badge {
       display: none;
-      font-size: 10px; font-weight: 900;
-      color: #ef4444; background: rgba(239, 68, 68, 0.1);
-      padding: 4px 12px; border-radius: 20px;
+      font-size: 10px;
+      font-weight: 900;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
       border: 1px solid rgba(239, 68, 68, 0.3);
-      margin-top: 10px; text-transform: uppercase;
+      margin-top: 10px;
+      text-transform: uppercase;
       animation: blink-slow 3s infinite ease-in-out;
     }
 
     #p-premium-badge.premium-badge {
       display: none;
-      align-items: center; gap: 5px;
-      padding: 5px 14px; border-radius: 8px;
-      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
       animation: blink-gold 2s infinite ease-in-out;
     }
 
     .unlock-link {
-      display: block; width: 100%; margin-top: 15px;
-      border-radius: 12px; padding: 12px;
-      font-size: 14px; font-weight: 800;
-      text-align: center; text-decoration: none;
+      display: block;
+      width: 100%;
+      margin-top: 15px;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      text-decoration: none;
       animation: blink-red 2s infinite ease-in-out;
       text-transform: uppercase;
     }
@@ -680,7 +742,18 @@
     [data-theme="black"] .quick-btn {
       background: rgba(255, 255, 255, 0.05);
     }
-  </style>
+  
+    .star-badge.premium {
+      background: #fbbf24;
+      color: #000;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+    .star-badge.guest {
+      background: #94a3b8;
+      color: #fff;
+      font-size: 10px;
+    }
+</style>
 
 </head>
 
@@ -692,8 +765,8 @@
           <i data-lucide="arrow-left" width="24" height="24"></i>
         </button>
         <div class="app-bar-title"><span>Profile</span>
-          
-          </div>
+
+        </div>
         <div style="width:40px;"></div>
       </div>
     </header>
@@ -740,16 +813,16 @@
               </div>
             </div>
             <div id="p-star-badge" class="star-badge">&#11088;</div>
-            <button id="p-edit-avatar" class="edit-avatar-btn" onclick="document.getElementById('p-avatar-input').click()">&#128247; Edit</button>
-            <input type="file" id="p-avatar-input" style="display:none" accept="image/*" onchange="handleProfilePicUpload(this)">
+            <button id="p-edit-avatar" class="edit-avatar-btn"
+              onclick="document.getElementById('p-avatar-input').click()">&#128247; Edit</button>
+            <input type="file" id="p-avatar-input" style="display:none" accept="image/*"
+              onchange="handleProfilePicUpload(this)">
           </div>
           <div class="hero-name" id="profile-name"></div>
           <div class="hero-email" id="profile-email"></div>
           <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:6px;">
-            <span class="login-badge email" id="login-badge">
-              <i data-lucide="mail" width="11" height="11"></i> Email
-            </span>
-            <div id="p-premium-badge" class="premium-badge">&#10024; Premium</div>
+
+            <div id="p-premium-badge" class="premium-badge">👑 Premium User</div>
           </div>
           <div id="not-premium-badge" class="not-premium-badge">Not Premium</div>
         </div>
@@ -774,27 +847,27 @@
           </div>
           <div class="info-row" id="ic-premium-row" style="display:none;">
             <span class="info-label">Status</span>
-            <span class="info-value" id="ic-status" style="color:#ef4444; font-weight:bold; animation: blink-slow 3s infinite;">Not Premium</span>
+            <span class="info-value" id="ic-status"
+              style="color:#ef4444; font-weight:bold; animation: blink-slow 3s infinite;">Not Premium</span>
           </div>
         </div>
       </div>
 
 
-      
-      
+
+
       <!-- Premium Info Banner -->
       <div id="premium-info-banner" class="premium-info-banner" style="display:none;">
         <h4>🔒 Premium Unlocks</h4>
         <div class="premium-points">
-          <div class="premium-point">🔒 Star Badge on Photo</div>
+          <div class="premium-point">🔒 Crown Badge on Photo</div>
           <div class="premium-point">🔒 Custom Profile Picture</div>
           <div class="premium-point">🔒 JKSSB AI Agent Access</div>
-          <div class="premium-point">🔒 Full Course Materials</div>
           <div class="premium-point">🔒 Premium Member Badge</div>
         </div>
         <a href="./course-details.html" class="unlock-link">Unlock Premium Access Now →</a>
       </div>
-<!-- Account (only for logged-in) -->
+      <!-- Account (only for logged-in) -->
       <div id="account-section" style="display:none;">
         <div class="sections-wrap" style="padding-bottom:0;">
           <div class="menu-section">
