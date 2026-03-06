@@ -124,10 +124,12 @@ class ProfilePage {
         this.showInline('p-star-badge');
         this.showInline('p-edit-avatar');
         this.hide('premium-info-banner');
+        this.hide('not-premium-badge');
       } else {
         this.hide('p-premium-badge');
         this.hide('p-star-badge');
         this.hide('p-edit-avatar');
+        this.show('not-premium-badge');
         this.show('premium-info-banner');
       }
 
