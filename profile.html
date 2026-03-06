@@ -178,30 +178,89 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    /* -- Premium Badges -- */
-    .premium-badge {
-      display: none; align-items: center; gap: 5px;
-      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-      color: #fff; padding: 4px 12px; border-radius: 8px;
-      font-size: 10px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.5px; margin-top: 6px;
-      box-shadow: 0 4px 12px rgba(217,119,6,0.3);
+    
+    /* -- Premium Features Styling -- */
+    .premium-info-banner {
+      margin: 20px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
     }
-    .star-badge {
-      display: none; position: absolute; bottom: -4px; right: -4px;
-      background: #fbbf24; color: #78350f; width: 24px; height: 24px;
-      border-radius: 50%; align-items: center; justify-content: center;
-      border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      z-index: 10; font-size: 13px;
+
+    /* Water/Shimmer sweep */
+    .premium-info-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(251, 191, 36, 0.1), transparent);
+      transform: skewX(-25deg);
+      animation: sweep 4s infinite;
     }
-    .avatar-outer { position: relative; }
-    .edit-avatar-btn {
-      display: none; position: absolute; bottom: -12px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.1);
-      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-      color: #1c1917; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 5;
+    @keyframes sweep { 100% { left: 200%; } }
+
+    .premium-info-banner h4 {
+      margin: 0 0 15px;
+      font-size: 15px; font-weight: 800; color: #fbbf24;
+      text-transform: uppercase; letter-spacing: 1px;
     }
+
+    .premium-points {
+      display: grid; gap: 10px;
+    }
+    .premium-point {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.35); /* Faded look */
+      padding: 10px 14px; background: rgba(255,255,255,0.02);
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Blinking Animations */
+    @keyframes blink-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes blink-gold {
+      0%, 100% { background: #fbbf24; color: #000; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+      50% { background: #d97706; color: #fff; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
+    }
+    @keyframes blink-red {
+      0%, 100% { background: #ef4444; color: #fff; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+      50% { background: #991b1b; color: #fecaca; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); }
+    }
+
+    .not-premium-badge {
+      display: none;
+      font-size: 10px; font-weight: 900;
+      color: #ef4444; background: rgba(239, 68, 68, 0.1);
+      padding: 4px 12px; border-radius: 20px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      margin-top: 10px; text-transform: uppercase;
+      animation: blink-slow 3s infinite ease-in-out;
+    }
+
+    #p-premium-badge.premium-badge {
+      display: none;
+      align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 8px;
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      animation: blink-gold 2s infinite ease-in-out;
+    }
+
+    .unlock-link {
+      display: block; width: 100%; margin-top: 15px;
+      border-radius: 12px; padding: 12px;
+      font-size: 14px; font-weight: 800;
+      text-align: center; text-decoration: none;
+      animation: blink-red 2s infinite ease-in-out;
+      text-transform: uppercase;
+    }
+
 
     /* ── Floating info card ─────────── */
     .floating-card {
@@ -712,6 +771,10 @@
           <div class="info-row">
             <span class="info-label">Signed In Via</span>
             <span class="info-value" id="ic-provider">—</span>
+          </div>
+          <div class="info-row" id="ic-premium-row" style="display:none;">
+            <span class="info-label">Status</span>
+            <span class="info-value" id="ic-status" style="color:#ef4444; font-weight:bold; animation: blink-slow 3s infinite;">Not Premium</span>
           </div>
         </div>
       </div>
