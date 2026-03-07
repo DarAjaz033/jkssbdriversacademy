@@ -1,4 +1,4 @@
-import { onAuthChange, getCurrentUser, signOut, clearSessionToken, isPremiumUser } from './auth-service';
+﻿import { onAuthChange, getCurrentUser, signOut, clearSessionToken, isPremiumUser } from './auth-service';
 import { db } from './firebase-config';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -119,20 +119,30 @@ class ProfilePage {
 
       // Premium Status logic
       const premium = await isPremiumUser(user.uid);
+      
+      const premiumPoints = document.querySelectorAll('.premium-point');
+      const unlockCta = document.getElementById('unlock-cta');
+      
       if (premium) {
         this.showInline('p-premium-badge');
         this.showInline('p-star-badge');
         this.showInline('p-edit-avatar');
-        this.hide('premium-info-banner');
         this.hide('ic-premium-row');
         this.hide('not-premium-badge');
+        
+        // Unlock all premium points
+        premiumPoints.forEach(pt => pt.classList.add('unlocked'));
+        if (unlockCta) unlockCta.style.display = 'none';
       } else {
         this.hide('p-premium-badge');
         this.hide('p-star-badge');
         this.hide('p-edit-avatar');
         this.show('not-premium-badge');
-        this.show('premium-info-banner');
         this.show('ic-premium-row');
+        
+        // Lock all premium points
+        premiumPoints.forEach(pt => pt.classList.remove('unlocked'));
+        if (unlockCta) unlockCta.style.display = 'block';
       }
 
     } catch (err) {

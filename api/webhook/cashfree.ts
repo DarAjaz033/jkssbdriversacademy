@@ -1,3 +1,23 @@
+// @ts-nocheck
+import crypto from 'crypto';
+
+/**
+ * Signature Verification according to Cashfree documentation
+ */
+function verifySignature(payload: string, signature: string, secretKey: string): boolean {
+  if (!signature || !secretKey) return false;
+  try {
+    const computedSignature = crypto
+      .createHmac('sha256', secretKey)
+      .update(payload)
+      .digest('base64');
+    return computedSignature === signature;
+  } catch (e) {
+    console.error('Signature verification error:', e);
+    return false;
+  }
+}
+
 // Define helper function to reply safely
 function replyOk(res: any) {
   try {
@@ -12,19 +32,23 @@ function replyOk(res: any) {
   }
 }
 
-// Helper to verify the actual order securely via Cashfree Orders API
+// Helper to verify the actual order securely via Cashfree Orders API (2023-08-01)
 async function verifyCashfreeOrder(orderId: string): Promise<any> {
-  const appId = process.env.CASHFREE_APP_ID || '';
-  const secretKey = process.env.CASHFREE_SECRET_KEY || '';
-  const url = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const appId = process.env.CASHFREE_APP_ID;
+  const secretKey = process.env.CASHFREE_SECRET_KEY;
+  const isSandbox = (process.env.CASHFREE_ENV || '').toLowerCase() === 'sandbox';
+  const baseUrl = isSandbox ? 'https://sandbox.cashfree.com/pg' : 'https://api.cashfree.com/pg';
+  const url = `${baseUrl}/orders/${orderId}`;
+
+  console.log(`Verifying on ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}...`);
 
   const response = await fetch(url, {
     method: 'GET',
     headers: {
       'accept': 'application/json',
       'x-api-version': '2023-08-01',
-      'x-client-id': appId,
-      'x-client-secret': secretKey
+      'x-client-id': appId || '',
+      'x-client-secret': secretKey || ''
     }
   });
 
@@ -35,176 +59,157 @@ async function verifyCashfreeOrder(orderId: string): Promise<any> {
 }
 
 module.exports = async function handler(req: any, res: any) {
-  // CORS Headers safely
   try {
-    if (typeof res.setHeader === 'function') {
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    // 1. Signature Verification (Security Priority)
+    const signature = req.headers['x-webhook-signature'];
+    const webhookSecret = process.env.CASHFREE_WEBHOOK_SECRET;
+
+    // For verification, we need the raw body
+    let rawBody = '';
+    if (typeof req.body === 'string') {
+      rawBody = req.body;
+    } else {
+      rawBody = JSON.stringify(req.body);
     }
-  } catch (e) { }
 
-  if (req.method === 'OPTIONS') {
-    try {
-      if (typeof res.status === 'function') return res.status(200).end();
-      res.writeHead(200); return res.end();
-    } catch (e) { return replyOk(res); }
-  }
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+      console.error('❌ Webhook Signature Verification Failed');
+      // We still return 200 to acknowledge receipt as per Cashfree best practice, 
+      // but we log the security event and drop processing.
+      return replyOk(res);
+    }
+    console.log('✅ Webhook Signature Verified.');
 
-  if (req.method !== 'POST') {
-    try {
-      if (typeof res.status === 'function') return res.status(405).json({ message: 'Method Not Allowed' });
-      res.writeHead(405, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ message: "Method Not Allowed" }));
-    } catch (e) { return replyOk(res); }
-  }
-
-  try {
     let payload = req.body;
     if (typeof payload === 'string') {
       try { payload = JSON.parse(payload); } catch (e) { }
     }
-
-    // Safely fallback to empty object
     payload = payload || {};
 
-    console.log('--- Incoming Cashfree Webhook ---');
-
-    // Return OK immediately for ANY test webhook / non-success event
+    // 2. Filter Event Type
     if (payload?.type !== 'PAYMENT_SUCCESS_WEBHOOK') {
-      console.log('Ignoring test or unrelated webhook type:', payload?.type);
       return replyOk(res);
     }
 
     const data = payload?.data || {};
     const orderData = data?.order || {};
     const customerDetails = data?.customer_details || {};
-    const paymentData = data?.payment || {};
+    const orderId = orderData?.order_id || '';
 
-    const formData = data?.form || {};
-    const formId = formData?.form_id || '';
-    const orderId = orderData?.order_id || formData?.order_id || '';
+    if (!orderId) return replyOk(res);
 
-    if (!orderId) {
-      console.log('No order ID found in payload.');
+    console.log(`Processing Verified Success for Order: ${orderId}`);
+
+    // 3. Robust Verification via API
+    let verifiedOrder;
+    try {
+      verifiedOrder = await verifyCashfreeOrder(orderId);
+    } catch (err: any) {
+      console.error('API Verification Failed:', err.message);
       return replyOk(res);
     }
-
-    console.log(`Verifying Order: ${orderId}`);
-    const verifiedOrder = await verifyCashfreeOrder(orderId);
 
     if (verifiedOrder.order_status !== 'PAID') {
-      console.log(`Order ${orderId} is not PAID. Status: ${verifiedOrder.order_status}`);
+      console.log(`Order ${orderId} status is ${verifiedOrder.order_status}, skipping.`);
       return replyOk(res);
     }
 
-    console.log('✅ Cashfree API verified order as PAID.');
-
-    // Identify user email/phone
-    const userEmail = customerDetails?.customer_email || verifiedOrder?.customer_details?.customer_email || '';
+    // 4. Data Extraction
+    const userEmail = (customerDetails?.customer_email || verifiedOrder?.customer_details?.customer_email || '').toLowerCase();
     const userPhone = customerDetails?.customer_phone || verifiedOrder?.customer_details?.customer_phone || '';
-    let targetPhone = userPhone?.replace(/^(\+?91)/, ''); // Normalize phone
+    const normPhone = userPhone?.replace(/\D/g, '').replace(/^(91)/, '');
+    const formId = data?.form?.form_id || verifiedOrder?.order_tags?.form_id || verifiedOrder?.order_tags?.code || '';
 
-    if (!userEmail && !targetPhone) {
-      console.error('No email or phone found to identify user.');
+    if (!userEmail && !normPhone) {
+      console.error('Cannot identify user (no email/phone)');
       return replyOk(res);
     }
 
-    // Lazy load firebase to prevent global initialization crashes during test pings
-    const { initializeApp } = await import('firebase/app');
-    const { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } = await import('firebase/firestore');
+    // 5. Atomic Transaction (Safety Priority)
+    const { initializeApp, getApp, getApps } = await import('firebase/app');
+    const { getFirestore, collection, query, where, getDocs, doc, runTransaction, serverTimestamp } = await import('firebase/firestore');
 
     const firebaseConfig = {
-      apiKey: process.env.FIREBASE_API_KEY || "AIzaSyAxRsJwYHIV3rVqJgjGf_ZwqmMF3TGwooM",
-      authDomain: process.env.FIREBASE_AUTH_DOMAIN || "jkssbdriversacd.firebaseapp.com",
-      projectId: process.env.FIREBASE_PROJECT_ID || "jkssbdriversacd",
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "jkssbdriversacd.firebasestorage.app",
-      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "723957920242",
-      appId: process.env.FIREBASE_APP_ID || "1:723957920242:web:825bc69a22161871107b6b"
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.FIREBASE_APP_ID
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(fbApp);
 
-    // 1. Find Course by formId using paymentLink
-    const coursesRef = collection(db, 'courses');
-    const coursesSnapshot = await getDocs(coursesRef);
-    let matchedCourse: any = null;
+    await runTransaction(db, async (transaction) => {
+      // a) Idempotency Check (Inside Transaction)
+      const purchasesRef = collection(db, 'purchases');
+      const qDup = query(purchasesRef, where('orderId', '==', orderId));
+      const dupSnap = await getDocs(qDup);
 
-    coursesSnapshot.forEach((doc) => {
-      const course = doc.data();
-      if (course.paymentLink && formId) {
-        if (course.paymentLink.includes(`code=${formId}`) || course.paymentLink.includes(`formId=${formId}`) || course.paymentLink.includes(formId)) {
-          matchedCourse = { id: doc.id, ...course };
-        }
+      if (!dupSnap.empty) {
+        console.log(`Idempotency: Order ${orderId} already processed.`);
+        return;
       }
+
+      // b) Find Course
+      const coursesRef = collection(db, 'courses');
+      const coursesSnap = await getDocs(coursesRef);
+      let matchedCourse: any = null;
+
+      coursesSnap.forEach((cDoc) => {
+        const c = cDoc.data();
+        if (c.paymentLink && formId && (c.paymentLink.includes(formId))) {
+          matchedCourse = { id: cDoc.id, ...c };
+        }
+      });
+
+      if (!matchedCourse) throw new Error(`Course not found for formId: ${formId}`);
+
+      // c) Find User
+      const usersRef = collection(db, 'users');
+      let userId: string | null = null;
+
+      // Try email
+      if (userEmail) {
+        const qE = query(usersRef, where('email', '==', userEmail));
+        const sE = await getDocs(qE);
+        if (!sE.empty) userId = sE.docs[0].id;
+      }
+
+      // Try phone fallback
+      if (!userId && normPhone) {
+        const qP = query(usersRef, where('phone', '==', normPhone));
+        const sP = await getDocs(qP);
+        if (!sP.empty) userId = sP.docs[0].id;
+      }
+
+      if (!userId) throw new Error(`User not found for ${userEmail || normPhone}`);
+
+      // d) Commit Enrollment
+      const enrolledAt = new Date();
+      let expiresAt = null;
+      if (matchedCourse.validityDays) {
+        expiresAt = new Date(enrolledAt.getTime() + (matchedCourse.validityDays * 24 * 60 * 60 * 1000));
+      }
+
+      const pDoc = doc(collection(db, 'purchases'));
+      transaction.set(pDoc, {
+        userId,
+        courseId: matchedCourse.id,
+        orderId,
+        amount: verifiedOrder.order_amount,
+        status: 'completed',
+        purchasedAt: serverTimestamp(),
+        expiresAt: expiresAt || null
+      });
+
+      console.log(`✅ Transaction committed: Course ${matchedCourse.id} unlocked for User ${userId}`);
     });
 
-    if (!matchedCourse) {
-      console.error(`Could not locate any course matching form_id: ${formId}`);
-      return replyOk(res);
-    }
-
-    console.log(`Matched Course: ${matchedCourse.title} (${matchedCourse.id})`);
-
-    // 2. Find User
-    const usersRef = collection(db, 'users');
-    let userSnapshot;
-
-    if (userEmail) {
-      const q = query(usersRef, where('email', '==', userEmail.toLowerCase()));
-      userSnapshot = await getDocs(q);
-    }
-
-    if ((!userSnapshot || userSnapshot.empty) && targetPhone) {
-      const qPhone = query(usersRef, where('phone', '==', targetPhone));
-      userSnapshot = await getDocs(qPhone);
-
-      if (userSnapshot.empty) {
-        const qPhoneAlt = query(usersRef, where('phone', '==', '+91' + targetPhone));
-        userSnapshot = await getDocs(qPhoneAlt);
-      }
-    }
-
-    if (!userSnapshot || userSnapshot.empty) {
-      console.error(`Could not find a registered user matching email: ${userEmail} or phone: ${targetPhone}.`);
-      return replyOk(res);
-    }
-
-    if (matchedCourse && userSnapshot && !userSnapshot.empty) {
-      const matchedUser = userSnapshot.docs[0];
-      console.log(`Matched User: ${matchedUser.data().email} (${matchedUser.id})`);
-
-      // Prevent duplicate enrollments check
-      const enrollmentsRef = collection(db, 'enrollments');
-      const qDup = query(enrollmentsRef, where('orderId', '==', orderId));
-      const dupCheck = await getDocs(qDup);
-
-      if (dupCheck.empty) {
-        const enrolledAt = new Date();
-        let expiresAt = null;
-        if (matchedCourse.validityDays) {
-          expiresAt = new Date(enrolledAt.getTime() + (matchedCourse.validityDays * 24 * 60 * 60 * 1000));
-        }
-
-        await addDoc(enrollmentsRef, {
-          userId: matchedUser.id,
-          courseId: matchedCourse.id,
-          orderId: orderId,
-          amount: verifiedOrder.order_amount,
-          status: 'active',
-          enrolledAt: serverTimestamp(),
-          expiresAt: expiresAt ? expiresAt : null
-        });
-        console.log(`🎉 Successfully unlocked course ${matchedCourse.id} for user ${matchedUser.id}`);
-      } else {
-        console.log(`Duplicate webhook. Enrollment for Order ${orderId} already exists`);
-      }
-    }
-
     return replyOk(res);
-  } catch (error) {
-    console.error('Error in Cashfree Webhook:', error);
+  } catch (err: any) {
+    console.error('CRITICAL WEBHOOK ERROR:', err.message);
     return replyOk(res);
   }
-}
+};

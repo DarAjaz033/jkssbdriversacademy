@@ -1,4 +1,4 @@
-import { signInWithEmail, signInWithGoogle, resetPassword, signOut } from './auth-service';
+import { signInWithEmail, signInWithGoogle, resetPassword, signOut, checkEmailRegistered } from './auth-service';
 import { isAdmin } from './admin-service';
 
 class AdminLoginPage {
@@ -121,12 +121,23 @@ class AdminLoginPage {
     this.resetBtn.textContent = 'Sending...';
     this.resetStatus.style.display = 'none';
 
+    const isRegistered = await checkEmailRegistered(email);
+    if (!isRegistered) {
+      this.resetStatus.textContent = 'This email is not registered. Please sign up or use Google Login.';
+      this.resetStatus.style.background = '#FEF2F2';
+      this.resetStatus.style.color = '#B91C1C';
+      this.resetStatus.style.display = 'block';
+      this.resetBtn.disabled = false;
+      this.resetBtn.textContent = 'Send Reset Link';
+      return;
+    }
+
     const result = await resetPassword(email);
     this.resetBtn.disabled = false;
     this.resetBtn.textContent = 'Send Reset Link';
 
     if (result.success) {
-      this.resetStatus.textContent = 'Reset link sent! Please check your email.';
+      this.resetStatus.textContent = 'Reset link sent! Please check your Inbox and Spam folders.';
       this.resetStatus.style.background = '#ECFDF5';
       this.resetStatus.style.color = '#059669';
       this.resetStatus.style.display = 'block';

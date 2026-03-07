@@ -238,6 +238,14 @@ export const clearSessionToken = async (uid: string) => {
 // ── Premium User Check ──────────────────────────────────────────────────────
 export const isPremiumUser = async (userId: string): Promise<boolean> => {
   try {
+    // 1. Whitelist for demo/testing
+    const user = auth.currentUser;
+    const WHITELIST = ['darjazz033@gmail.com', 'admin@example.com'];
+    if (user && user.email && WHITELIST.includes(user.email.toLowerCase())) {
+      return true;
+    }
+
+    // 2. Check Purchases in Firestore
     const q = query(
       collection(db, 'purchases'),
       where('userId', '==', userId),
@@ -245,12 +253,11 @@ export const isPremiumUser = async (userId: string): Promise<boolean> => {
     );
     const querySnapshot = await getDocs(q);
 
-    // If any completed purchase exists, they are premium
-    // (In a real app, you might check expiresAt here too, but for "premium badge" 
-    // usually any purchase counts or we follow fetchUserEnrollments logic)
+    if (querySnapshot.empty) return false;
+
+    // Check expiry
     const now = new Date();
     let hasActive = false;
-
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       if (!data.expiresAt) {

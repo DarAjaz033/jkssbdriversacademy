@@ -335,7 +335,10 @@ style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16p
           return;
         }
         if (course.paymentLink) {
-          openDirectPaymentModal(course as AdminCourse, user.uid);
+          const originalText = enrollBtn.innerHTML;
+          enrollBtn.innerHTML = 'Opening Secure Checkout...';
+          window.open(course.paymentLink, '_blank');
+          setTimeout(() => enrollBtn.innerHTML = originalText, 2000);
         } else {
           window.location.href = `./course-purchase.html?id=${course.id}`;
         }
@@ -346,7 +349,7 @@ style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16p
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('buy') === 'true' && getCurrentUser()) {
       if (course.paymentLink) {
-        openDirectPaymentModal(course as AdminCourse, getCurrentUser()!.uid);
+        window.open(course.paymentLink, '_blank');
       } else {
         window.location.href = `./course-purchase.html?id=${course.id}`;
       }

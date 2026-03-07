@@ -179,10 +179,10 @@ class HomePage {
   private currentUser: any = null;
 
   constructor() {
-    this.updateProfileBadge();
     this.coursesContainer = document.querySelector('.course-cards');
     this.init();
     this.setupExpandTopicsDelegation();
+    this.updateProfileBadge();
   }
 
   private setupExpandTopicsDelegation(): void {
@@ -208,6 +208,7 @@ class HomePage {
     onAuthChange(async (user) => {
       this.currentUser = user;
       await this.loadCourses();
+      await this.updateProfileBadge();
     });
   }
 
@@ -485,21 +486,16 @@ class HomePage {
       </div>
     `;
   }
-}
-
-// Initialize only if we're on a page with course-cards
-if (document.querySelector('.course-cards')) {
-  new HomePage();
 
   private async updateProfileBadge(): Promise<void> {
     const badge = document.getElementById('home-profile-badge');
     if (!badge) return;
 
     if (!this.currentUser) {
-       badge.className = 'home-profile-badge guest';
-       badge.innerHTML = '👤';
-       badge.style.display = 'flex';
-       return;
+      badge.className = 'home-profile-badge guest';
+      badge.innerHTML = '👤';
+      badge.style.display = 'flex';
+      return;
     }
 
     const premium = await isPremiumUser(this.currentUser.uid);
@@ -513,5 +509,9 @@ if (document.querySelector('.course-cards')) {
       badge.style.display = 'flex';
     }
   }
+}
 
+// Initialize only if we're on a page with course-cards
+if (document.querySelector('.course-cards')) {
+  new HomePage();
 }

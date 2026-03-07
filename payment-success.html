@@ -48,13 +48,11 @@
     <div class="spinner"></div>
 
     <script>
-        // Post message to parent window (the course details page overlay)
-        // telling it to close the modal and run the success flow
-        if (window.parent) {
-            setTimeout(() => {
-                window.parent.postMessage({ type: 'CASHFREE_PAYMENT_SUCCESS' }, '*');
-            }, 1000); // slight delay for visual
-        }
+        // Redirection logic. We are in a native new tab now, not an iframe.
+        // Wait 2.5 seconds to show the user it was successful then route to dashboard
+        setTimeout(() => {
+            window.location.href = './my-courses.html';
+        }, 2500);
     </script>
 </body>
 

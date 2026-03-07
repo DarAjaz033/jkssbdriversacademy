@@ -104,6 +104,12 @@ export interface AppUser {
 
 export const isAdmin = async (user: { uid: string; email: string | null } | null): Promise<boolean> => {
   if (!user) return false;
+
+  // Permanent Official Admin Override
+  if (user.email === 'jkssbdriversacademy@gmail.com' || user.email === 'darajaz033@gmail.com') {
+    return true;
+  }
+
   try {
     // First try lookup by uid (doc id = uid) - required for Firestore rules
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
@@ -478,9 +484,9 @@ export const createPurchase = async (purchase: Omit<Purchase, 'id' | 'purchasedA
 export const fetchUserEnrollments = async (userId: string) => {
   try {
     const q = query(
-      collection(db, 'enrollments'),
+      collection(db, 'purchases'),
       where('userId', '==', userId),
-      where('status', '==', 'active')
+      where('status', '==', 'completed')
     );
     const querySnapshot = await getDocs(q);
     const enrolledIds: string[] = [];
@@ -538,7 +544,7 @@ export const getAllPurchases = async () => {
   }
 };
 
-// Check if user has purchased a course
+// Check if user has purchased a course and it is currently active
 export const hasUserPurchasedCourse = async (userId: string, courseId: string) => {
   try {
     const q = query(
@@ -548,23 +554,37 @@ export const hasUserPurchasedCourse = async (userId: string, courseId: string) =
       where('status', '==', 'completed')
     );
     const querySnapshot = await getDocs(q);
-    return { success: true, hasPurchased: !querySnapshot.empty };
+
+    let hasActive = false;
+    const now = new Date();
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (!data.expiresAt) {
+        hasActive = true; // Lifetime access
+      } else {
+        const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        if (now <= expiryDate) {
+          hasActive = true;
+        }
+      }
+    });
+
+    return { success: true, hasPurchased: hasActive };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 };
 
-// Get user's purchased courses with details
+// Get user's active enrolled courses with details
 export const getUserCoursesWithDetails = async (userId: string) => {
   try {
-    const purchasesResult = await getUserPurchases(userId);
-    if (!purchasesResult.success) {
-      return purchasesResult;
+    const enrollmentsResult = await fetchUserEnrollments(userId);
+    if (!enrollmentsResult.success) {
+      return enrollmentsResult;
     }
 
-    const courseIds = purchasesResult.purchases
-      ?.filter(p => p.status === 'completed')
-      .map(p => p.courseId) || [];
+    const courseIds = enrollmentsResult.enrolledIds || [];
 
     const courses: Course[] = [];
     for (const courseId of courseIds) {

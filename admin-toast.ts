@@ -7,9 +7,9 @@
 // ─── Inject styles once ──────────────────────────────────────────────────────
 const STYLE_ID = '__admin_toast_css';
 if (!document.getElementById(STYLE_ID)) {
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = `
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
     #toast-container {
       position: fixed;
       bottom: 1.5rem;
@@ -160,27 +160,27 @@ if (!document.getElementById(STYLE_ID)) {
 
     .confirm-btn.danger:hover { box-shadow: 0 4px 12px rgba(220,38,38,0.3); transform: translateY(-1px); }
   `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 }
 
 // ─── Toast container ─────────────────────────────────────────────────────────
 function getContainer(): HTMLElement {
-    let el = document.getElementById('toast-container');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'toast-container';
-        document.body.appendChild(el);
-    }
-    return el;
+  let el = document.getElementById('toast-container');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-container';
+    document.body.appendChild(el);
+  }
+  return el;
 }
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 const ICONS: Record<ToastType, string> = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠'
+  success: '✓',
+  error: '✕',
+  info: 'ℹ',
+  warning: '⚠'
 };
 
 /**
@@ -190,37 +190,37 @@ const ICONS: Record<ToastType, string> = {
  * @param duration Duration in ms (default 3500)
  */
 export function showToast(message: string, type: ToastType = 'info', duration = 3500): void {
-    const container = getContainer();
-    const toast = document.createElement('div');
-    toast.className = `toast-item ${type}`;
-    toast.style.position = 'relative';
-    toast.style.overflow = 'hidden';
-    toast.innerHTML = `
+  const container = getContainer();
+  const toast = document.createElement('div');
+  toast.className = `toast-item ${type}`;
+  toast.style.position = 'relative';
+  toast.style.overflow = 'hidden';
+  toast.innerHTML = `
     <span class="toast-icon">${ICONS[type]}</span>
     <span class="toast-text">${message}</span>
     <div class="toast-progress" style="width:100%;transition-duration:${duration}ms;"></div>
   `;
 
-    toast.addEventListener('click', () => dismiss(toast));
-    container.appendChild(toast);
+  toast.addEventListener('click', () => dismiss(toast));
+  container.appendChild(toast);
 
-    // Trigger entrance animation
-    requestAnimationFrame(() => {
-        toast.classList.add('visible');
-        // Start progress bar shrink
-        const bar = toast.querySelector<HTMLElement>('.toast-progress');
-        if (bar) {
-            requestAnimationFrame(() => { bar.style.width = '0%'; });
-        }
-    });
+  // Trigger entrance animation
+  requestAnimationFrame(() => {
+    toast.classList.add('visible');
+    // Start progress bar shrink
+    const bar = toast.querySelector<HTMLElement>('.toast-progress');
+    if (bar) {
+      requestAnimationFrame(() => { bar.style.width = '0%'; });
+    }
+  });
 
-    const timer = setTimeout(() => dismiss(toast), duration);
-    toast.addEventListener('click', () => clearTimeout(timer));
+  const timer = setTimeout(() => dismiss(toast), duration);
+  toast.addEventListener('click', () => clearTimeout(timer));
 }
 
 function dismiss(toast: HTMLElement): void {
-    toast.classList.add('hiding');
-    setTimeout(() => toast.remove(), 350);
+  toast.classList.add('hiding');
+  setTimeout(() => toast.remove(), 350);
 }
 
 // ─── Confirmation Dialog ─────────────────────────────────────────────────────
@@ -229,15 +229,15 @@ function dismiss(toast: HTMLElement): void {
  * @returns Promise<boolean> resolves true if confirmed, false if cancelled
  */
 export function showConfirm(
-    title: string,
-    message: string,
-    confirmLabel = 'Delete',
-    type: 'danger' | 'warning' = 'danger'
+  title: string,
+  message: string,
+  confirmLabel = 'Delete',
+  type: 'danger' | 'warning' = 'danger'
 ): Promise<boolean> {
-    return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'confirm-overlay';
-        overlay.innerHTML = `
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
       <div class="confirm-card">
         <div class="confirm-icon ${type}">${type === 'danger' ? '🗑️' : '⚠️'}</div>
         <div class="confirm-title">${title}</div>
@@ -249,17 +249,17 @@ export function showConfirm(
       </div>
     `;
 
-        document.body.appendChild(overlay);
-        requestAnimationFrame(() => overlay.classList.add('visible'));
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('visible'));
 
-        const close = (result: boolean) => {
-            overlay.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 250);
-            resolve(result);
-        };
+    const close = (result: boolean) => {
+      overlay.classList.remove('visible');
+      setTimeout(() => overlay.remove(), 250);
+      resolve(result);
+    };
 
-        overlay.querySelector('#confirm-cancel-btn')!.addEventListener('click', () => close(false));
-        overlay.querySelector('#confirm-ok-btn')!.addEventListener('click', () => close(true));
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
-    });
+    overlay.querySelector('#confirm-cancel-btn')!.addEventListener('click', () => close(false));
+    overlay.querySelector('#confirm-ok-btn')!.addEventListener('click', () => close(true));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+  });
 }
