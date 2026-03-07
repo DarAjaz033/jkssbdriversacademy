@@ -1,0 +1,29 @@
+commit 86ee79faa61d1833f22eac29f8c73bbfa8d9d570
+Author: DarAjaz033 <darajaz033@gmail.com>
+Date:   Sat Mar 7 19:23:09 2026 +0530
+
+    updates
+
+commit 3de7259ca7a6d351cc301e970d14b8bfbef67108
+Author: DarAjaz033 <darajaz033@gmail.com>
+Date:   Sat Mar 7 05:12:31 2026 +0530
+
+    style: updated premium to crown, added guest icons, and fixed ui colors
+
+commit c8bf0a8c35e6fc4969fd71535553f71e47a8e94f
+Author: DarAjaz033 <darajaz033@gmail.com>
+Date:   Sat Mar 7 04:54:43 2026 +0530
+
+    style: improved point visibility, added 1MB limit for dp, and profile badges on home
+
+commit 556e0a493d9604ec756ca5173991b62a81480906
+Author: DarAjaz033 <darajaz033@gmail.com>
+Date:   Sat Mar 7 04:49:32 2026 +0530
+
+    style: final premium UI upgrades with blinking effects and faded points
+
+commit 6e79d75b4841f77bb66cde5874d98b06569d561e
+Author: DarAjaz033 <darajaz033@gmail.com>
+Date:   Sat Mar 7 04:46:15 2026 +0530
+
+    style: refined premium info banner with faded points, blinking status, and red CTA
