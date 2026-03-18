@@ -51,7 +51,13 @@
         // Redirection logic. We are in a native new tab now, not an iframe.
         // Wait 2.5 seconds to show the user it was successful then route to dashboard
         setTimeout(() => {
-            window.location.href = './my-courses.html';
+            const urlParams = new URLSearchParams(window.location.search);
+            const courseId = urlParams.get('course_id');
+            if (courseId) {
+                window.location.href = `./my-courses.html?courseId=${courseId}`;
+            } else {
+                window.location.href = './my-courses.html';
+            }
         }, 2500);
     </script>
 </body>

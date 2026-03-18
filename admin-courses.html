@@ -351,6 +351,10 @@
         <a href="./admin-purchases.html" class="admin-nav-item">
           <i data-lucide="shopping-cart" width="20" height="20"></i> Purchases
         </a>
+        <a href="./admin-videos.html" class="admin-nav-item">
+          <i data-lucide="video" width="20" height="20"></i>
+          Manage Videos
+        </a>
         <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
           <a href="./index.html" class="admin-nav-item">
             <i data-lucide="home" width="20" height="20"></i> Back to Site
@@ -385,6 +389,18 @@
             <div class="card-body">
               <form id="course-form">
                 <input type="hidden" id="course-id" />
+
+                <!-- Category -->
+                <div class="form-group">
+                  <label class="form-label">Course Category</label>
+                  <select id="category" class="form-select" required>
+                    <option value="Complete Package">Complete Package</option>
+                    <option value="Traffic Rules">Traffic Rules</option>
+                    <option value="MV Act">MV Act</option>
+                    <option value="Mechanical">Mechanical Knowledge</option>
+                    <option value="Old Papers">Old Papers</option>
+                  </select>
+                </div>
 
                 <!-- Title -->
                 <div class="form-group">

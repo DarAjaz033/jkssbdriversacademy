@@ -20,6 +20,7 @@ import {
   getDownloadURL,
   deleteObject
 } from 'firebase/storage';
+import { PDFDocument, rgb, degrees } from 'pdf-lib';
 
 const COURSES_CACHE_KEY = 'jkssb_courses_cache';
 const PDFS_CACHE_KEY = 'jkssb_pdfs_cache';
@@ -39,6 +40,7 @@ export interface Course {
   oldPrice?: number;
   duration: string;
   category?: string;
+  descriptionHeading?: string;
   paymentLink?: string;
   validityDays?: number;
   rank?: number;
@@ -63,6 +65,8 @@ export interface PDF {
   url: string;
   size: number;
   uploadedAt: any;
+  courseId?: string;
+  partId?: string; // e.g. 'part1', 'part2', 'part3'
 }
 
 export interface PracticeTest {
@@ -71,8 +75,19 @@ export interface PracticeTest {
   description: string;
   questions: Question[];
   duration: number;
-  courseId?: string;
+  courseId: string;
+  partId?: string; // e.g. 'part1', 'part2', 'part3'
+  category?: string; // e.g. 'Practice', 'Chapter', 'Mock'
   createdAt: any;
+}
+
+export interface Video {
+  id?: string;
+  title: string;
+  url: string;
+  courseId: string;
+  partId?: string; // e.g. 'part1', 'part2', 'part3'
+  createdAt?: any;
 }
 
 export interface Question {
@@ -275,8 +290,37 @@ export const getCourse = async (courseId: string) => {
 };
 
 // PDF Management
-export const uploadPDF = async (file: File) => {
+const addWatermarkToPDF = async (file: File): Promise<File> => {
+  if (file.type !== 'application/pdf') return file;
   try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pages = pdfDoc.getPages();
+
+    for (const page of pages) {
+      const { width, height } = page.getSize();
+      // Calculate text width approximately and center it
+      page.drawText('JKSSB Drivers Academy', {
+        x: width / 2 - 200,
+        y: height / 2 - 50,
+        size: 40,
+        color: rgb(0.5, 0.5, 0.5),
+        opacity: 0.3,
+        rotate: degrees(45),
+      });
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return new File([pdfBytes as any], file.name, { type: 'application/pdf' });
+  } catch (error) {
+    console.error('Failed to add watermark', error);
+    return file;
+  }
+};
+
+export const uploadPDF = async (originalFile: File) => {
+  try {
+    const file = await addWatermarkToPDF(originalFile);
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const storageRef = ref(storage, `pdfs/${fileName}`);
@@ -347,11 +391,13 @@ export const deletePDF = async (pdfId: string, url: string) => {
 /** Upload a PDF file and immediately link it to a course.
  *  onProgress is called with 0-100 as bytes transfer. */
 export const uploadPDFToCourse = (
-  file: File,
+  originalFile: File,
   courseId: string,
+  partId?: string,
   onProgress?: (percent: number) => void
 ): Promise<{ success: true; id: string; url: string } | { success: false; error: string }> => {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    const file = await addWatermarkToPDF(originalFile);
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const storageRef = ref(storage, `pdfs/${fileName}`);
@@ -372,6 +418,7 @@ export const uploadPDFToCourse = (
             url,
             size: file.size,
             courseId,
+            partId,
             uploadedAt: serverTimestamp()
           });
 
@@ -433,16 +480,63 @@ export const getCourseQuizzes = async (courseId: string) => {
   }
 };
 
-// Practice Test Management
-export const createPracticeTest = async (test: Omit<PracticeTest, 'id' | 'createdAt'>) => {
+/** Get all videos linked to a specific course. */
+export const getCourseVideos = async (courseId: string) => {
   try {
-    const docRef = await addDoc(collection(db, 'practiceTests'), {
-      ...test,
+    const q = query(collection(db, 'courseVideos'), where('courseId', '==', courseId));
+    const querySnapshot = await getDocs(q);
+    const videos: Video[] = [];
+    querySnapshot.forEach((doc) => {
+      videos.push({ id: doc.id, ...doc.data() } as Video);
+    });
+    return { success: true, videos };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Create a new video and link it to a course. */
+export const createVideo = async (video: Omit<Video, 'id' | 'createdAt'>) => {
+  try {
+    const docRef = await addDoc(collection(db, 'courseVideos'), {
+      ...video,
       createdAt: serverTimestamp()
     });
     return { success: true, id: docRef.id };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+};
+
+/** Delete a video. */
+export const deleteVideo = async (videoId: string) => {
+  try {
+    await deleteDoc(doc(db, 'courseVideos', videoId));
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Practice Test Management
+export async function createPracticeTest(data: {
+  title: string;
+  description: string;
+  questions: any[];
+  duration: number;
+  courseId: string;
+  partId?: string;
+  category?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const docRef = await addDoc(collection(db, 'practiceTests'), {
+      ...data,
+      createdAt: serverTimestamp()
+    });
+    return { success: true, id: docRef.id };
+  } catch (err: any) {
+    console.error('Error creating practice test:', err);
+    return { success: false, error: err.message };
   }
 };
 
@@ -483,35 +577,48 @@ export const createPurchase = async (purchase: Omit<Purchase, 'id' | 'purchasedA
 
 export const fetchUserEnrollments = async (userId: string) => {
   try {
+    const enrolledIds: string[] = [];
+    const now = new Date();
+
+    // 1. Direct subcollection check (App's preferred method)
+    // purchases/{userId}/courses/{courseId}
+    const subColRef = collection(db, 'purchases', userId, 'courses');
+    const subColSnap = await getDocs(subColRef);
+    subColSnap.forEach((doc) => {
+      const data = doc.data();
+      if (data.isPurchased === true) {
+        // Expiration check
+        let isValid = true;
+        if (data.expiresAt) {
+          const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+          if (now > expiryDate) isValid = false;
+        }
+        if (isValid) enrolledIds.push(doc.id);
+      }
+    });
+
+    // 2. Legacy/Top-level check (Website's legacy method)
     const q = query(
       collection(db, 'purchases'),
       where('userId', '==', userId),
       where('status', '==', 'completed')
     );
     const querySnapshot = await getDocs(q);
-    const enrolledIds: string[] = [];
-
-    // Filter out expired enrollments dynamically
-    const now = new Date();
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      let isValid = true;
-
-      // Check expiration
-      if (data.expiresAt) {
-        const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-        if (now > expiryDate) {
-          isValid = false;
+      if (data.courseId && !enrolledIds.includes(data.courseId)) {
+        let isValid = true;
+        if (data.expiresAt) {
+          const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+          if (now > expiryDate) isValid = false;
         }
-      }
-
-      if (isValid && data.courseId) {
-        enrolledIds.push(data.courseId);
+        if (isValid) enrolledIds.push(data.courseId);
       }
     });
 
-    return { success: true, enrolledIds };
+    // Use Set to ensure uniqueness
+    return { success: true, enrolledIds: [...new Set(enrolledIds)] };
   } catch (error: any) {
     return { success: false, error: error.message, enrolledIds: [] };
   }
@@ -547,6 +654,30 @@ export const getAllPurchases = async () => {
 // Check if user has purchased a course and it is currently active
 export const hasUserPurchasedCourse = async (userId: string, courseId: string) => {
   try {
+    const now = new Date();
+
+    // 1. Check if user is Admin or Premium (Global access)
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      if (userData.role === 'admin' || userData.isPremium === true || userData.isAdmin === true) {
+        return { success: true, hasPurchased: true };
+      }
+    }
+
+    // 2. Check subcollection (App's preferred method)
+    const subDocRef = doc(db, 'purchases', userId, 'courses', courseId);
+    const subDocSnap = await getDoc(subDocRef);
+    if (subDocSnap.exists()) {
+      const data = subDocSnap.data();
+      if (data.isPurchased === true) {
+        if (!data.expiresAt) return { success: true, hasPurchased: true };
+        const expiry = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        if (now <= expiry) return { success: true, hasPurchased: true };
+      }
+    }
+
+    // 3. Check Top-level Purchases (Legacy/Website method)
     const q = query(
       collection(db, 'purchases'),
       where('userId', '==', userId),
@@ -556,12 +687,10 @@ export const hasUserPurchasedCourse = async (userId: string, courseId: string) =
     const querySnapshot = await getDocs(q);
 
     let hasActive = false;
-    const now = new Date();
-
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       if (!data.expiresAt) {
-        hasActive = true; // Lifetime access
+        hasActive = true;
       } else {
         const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
         if (now <= expiryDate) {

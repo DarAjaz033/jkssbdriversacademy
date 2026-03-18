@@ -29,23 +29,10 @@
     })();
   </script>
 
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <title>Manage PDFs & Quizzes | Admin Panel</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
@@ -704,7 +691,7 @@
       }
     }
   </style>
-  </head>
+</head>
 
 <body>
   <div class="admin-container">
@@ -727,7 +714,12 @@
           <i data-lucide="clipboard-list" width="20" height="20"></i> Practice Tests
         </a>
         <a href="./admin-purchases.html" class="admin-nav-item">
-          <i data-lucide="shopping-cart" width="20" height="20"></i> Purchases
+          <i data-lucide="shopping-cart" width="20" height="20"></i>
+          Purchases
+        </a>
+        <a href="./admin-videos.html" class="admin-nav-item">
+          <i data-lucide="video" width="20" height="20"></i>
+          Manage Videos
         </a>
         <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
           <a href="./index.html" class="admin-nav-item">
@@ -749,6 +741,31 @@
         </button>
       </div>
 
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Quiz Title *</label>
+                  <input type="text" class="form-input quiz-title-input" placeholder="e.g. Traffic Signs MCQ" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Duration (minutes) *</label>
+                  <input type="number" class="form-input quiz-duration-input" placeholder="30" min="1" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Quiz Category *</label>
+                  <select class="form-input quiz-category-input">
+                    <option value="Practice">Practice Test</option>
+                    <option value="Chapter">Chapter Test</option>
+                    <option value="Mock">Full Mock Test</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Description (optional)</label>
+                  <input type="text" class="form-input quiz-desc-input" placeholder="Brief description">
+                </div>
+              </div>
       <div class="card">
         <div class="card-header">
           <h2>Course Libraries</h2>

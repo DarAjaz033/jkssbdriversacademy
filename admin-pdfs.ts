@@ -75,7 +75,21 @@ class AdminPDFsPage {
   // ─── Rendering ───────────────────────────────────────────────────────────────
 
   private async renderAllFolders(): Promise<void> {
-    if (this.allCourses.length === 0) {
+    // Prepend canonical parts if they don't exist in the list
+    const canonicalParts = [
+      { id: 'part1', title: 'Part 1 — Traffic Rules & Road Safety', pdfIds: [], practiceTestIds: [] },
+      { id: 'part2', title: 'Part 2 — Motor Vehicle Act', pdfIds: [], practiceTestIds: [] },
+      { id: 'part3', title: 'Part 3 — Mechanical Knowledge', pdfIds: [], practiceTestIds: [] }
+    ];
+
+    const displayCourses = [...this.allCourses];
+    canonicalParts.forEach(p => {
+      if (!displayCourses.find(c => c.id === p.id)) {
+        displayCourses.unshift(p as any);
+      }
+    });
+
+    if (displayCourses.length === 0) {
       this.courseFoldersContainer.innerHTML =
         '<p style="text-align:center;color:#64748B;padding:2rem;">No courses found. Create a course first.</p>';
       return;
@@ -84,7 +98,7 @@ class AdminPDFsPage {
     // Load quizzes for all courses in parallel
     const quizzesMap: Record<string, PracticeTest[]> = {};
     await Promise.all(
-      this.allCourses.map(async (c) => {
+      displayCourses.map(async (c) => {
         if (!c.id) return;
         const res = await getCourseQuizzes(c.id);
         quizzesMap[c.id] = res.tests ?? [];
@@ -92,10 +106,11 @@ class AdminPDFsPage {
     );
 
     let html = '';
-    this.allCourses.forEach((course) => {
+    displayCourses.forEach((course) => {
       if (!course.id) return;
+      // Filter by both document property (website) and courseId field (app sync)
       const coursePDFs = this.allPDFs.filter((p) =>
-        course.pdfIds?.includes(p.id ?? '')
+        (p as any).courseId === course.id || course.pdfIds?.includes(p.id ?? '')
       );
       const courseQuizzes = quizzesMap[course.id] ?? [];
       const totalItems = coursePDFs.length + courseQuizzes.length;
@@ -174,6 +189,15 @@ class AdminPDFsPage {
                   <label class="form-label">Duration (minutes) *</label>
                   <input type="number" class="form-input quiz-duration-input" placeholder="30" min="1" required>
                 </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">Category *</label>
+                <select class="form-input quiz-category-input" required>
+                  <option value="Practice Test">Practice Test</option>
+                  <option value="Chapter Test">Chapter Test</option>
+                  <option value="Full Mock Test">Full Mock Test</option>
+                </select>
               </div>
 
               <div class="form-group" style="margin-bottom:0.75rem;">
@@ -508,6 +532,7 @@ class AdminPDFsPage {
     const form = document.getElementById(`quiz-form-${courseId}`)!;
     const title = form.querySelector<HTMLInputElement>('.quiz-title-input')?.value.trim() ?? '';
     const duration = parseInt(form.querySelector<HTMLInputElement>('.quiz-duration-input')?.value ?? '0');
+    const category = form.querySelector<HTMLSelectElement>('.quiz-category-input')?.value ?? 'Practice Test';
     const description = form.querySelector<HTMLInputElement>('.quiz-desc-input')?.value.trim() ?? '';
     const pending = this.pendingQuizQuestions[courseId];
 
@@ -521,12 +546,15 @@ class AdminPDFsPage {
     btn.disabled = true;
     btn.textContent = 'Saving…';
 
+    const partId = (courseId === 'part1' || courseId === 'part2' || courseId === 'part3') ? courseId : undefined;
     const result = await createPracticeTest({
       title,
       description,
       questions: pending.questions,
       duration,
-      courseId
+      courseId,
+      partId,
+      category
     });
 
     if (result.success) {
@@ -542,6 +570,7 @@ class AdminPDFsPage {
         questions: pending.questions,
         duration,
         courseId,
+        category,
         createdAt: null
       };
 
@@ -606,7 +635,8 @@ class AdminPDFsPage {
     courseId: string,
     onProgress: (pct: number) => void
   ): Promise<boolean> {
-    const result = await uploadPDFToCourse(file, courseId, onProgress);
+    const partId = (courseId === 'part1' || courseId === 'part2' || courseId === 'part3') ? courseId : undefined;
+    const result = await uploadPDFToCourse(file, courseId, partId, onProgress);
 
     if (result.success) {
       const pdfListEl = document.getElementById(`pdf-list-${courseId}`)!;

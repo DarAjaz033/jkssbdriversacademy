@@ -3,7 +3,7 @@ import { escapeHtml } from './utils/escape-html';
 import { doc, getDoc } from 'firebase/firestore';
 import { getCurrentUser } from './auth-service';
 import { openDirectPaymentModal } from './payment-service';
-import { Course as AdminCourse } from './admin-service';
+import { Course as AdminCourse, hasUserPurchasedCourse } from './admin-service';
 
 interface Course {
   id: string;
@@ -27,6 +27,7 @@ interface Course {
 class CourseDetailsPage {
   private mainContent: HTMLElement | null;
   private courseId: string | null;
+  private isEnrolled: boolean = false;
 
   constructor() {
     this.mainContent = document.querySelector('.page-content');
@@ -45,7 +46,16 @@ class CourseDetailsPage {
       return;
     }
 
+    await this.checkEnrollment();
     await this.loadCourseDetails();
+  }
+
+  private async checkEnrollment(): Promise<void> {
+    const user = getCurrentUser();
+    if (user && this.courseId) {
+      const result = await hasUserPurchasedCourse(user.uid, this.courseId);
+      this.isEnrolled = !!(result.success && result.hasPurchased);
+    }
   }
 
   private async loadCourseDetails(): Promise<void> {
@@ -287,13 +297,13 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
 
                 <!--Enroll Button-->
                 <button
-              id="course-enroll-btn"
-class="btn-primary"
-style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16px; font-weight: 600;"
-  >
-  <span>Enroll Now</span>
-    <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
-      </button>
+                  id="course-enroll-btn"
+                  class="${this.isEnrolled ? 'btn-secondary' : 'btn-primary'}"
+                  style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16px; font-weight: 600; cursor: ${this.isEnrolled ? 'default' : 'pointer'};"
+                >
+                  <span>${this.isEnrolled ? 'Already Enrolled' : 'Enroll Now'}</span>
+                  <i data-lucide="${this.isEnrolled ? 'check' : 'arrow-right'}" style="width: 20px; height: 20px;"></i>
+                </button>
       </div>
       </div>
 
@@ -329,6 +339,10 @@ style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16p
     const enrollBtn = document.getElementById('course-enroll-btn');
     if (enrollBtn) {
       enrollBtn.addEventListener('click', () => {
+        if (this.isEnrolled) {
+          window.location.href = './my-courses.html';
+          return;
+        }
         const user = getCurrentUser();
         if (!user) {
           window.location.href = `./login.html?redirect=${encodeURIComponent(`course-details.html?id=${course.id}&buy=true`)}`;

@@ -29,24 +29,10 @@
     })();
   </script>
 
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Manage Purchases | Admin Panel</title>
+  <title>Manage Course Videos | Admin Panel</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -115,9 +101,6 @@
 
     .page-header {
       margin-bottom: 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
 
     .page-header h1 {
@@ -131,6 +114,12 @@
       color: #64748B;
     }
 
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+    }
+
     .card {
       background: white;
       border-radius: 1rem;
@@ -139,67 +128,117 @@
       overflow: hidden;
     }
 
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    .purchases-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    .purchases-table th {
-      padding: 1rem 1.5rem;
-      background: #F8FAFC;
-      border-bottom: 1px solid #E2E8F0;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .purchases-table td {
+    .card-header {
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #F1F5F9;
-      font-size: 0.875rem;
-      color: #334155;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .status-badge.completed {
-      background: #F0FDF4;
-      color: #16A34A;
-    }
-
-    .status-badge.pending {
-      background: #FFFBEB;
-      color: #CA8A04;
-    }
-
-    .status-badge.failed {
-      background: #FEF2F2;
-      color: #DC2626;
-    }
-
-    .user-info {
+      border-bottom: 1px solid #E2E8F0;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .user-email {
-      font-size: 0.75rem;
-      color: #94A3B8;
+    .card-header h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1E293B;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1E293B;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #E2E8F0;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Video List Styles */
+    .video-card {
+      background: white;
+      border: 1px solid #E2E8F0;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .video-card:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .video-info h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1E293B;
+      margin-bottom: 0.25rem;
+    }
+
+    .video-meta {
+      display: flex;
+      gap: 1.25rem;
+      font-size: 0.8125rem;
+      color: #64748B;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .btn-icon.delete { color: #EF4444; }
+    .btn-icon.delete:hover { background: #FEF2F2; }
+
+    @media (max-width: 1024px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 768px) {
@@ -212,7 +251,7 @@
       }
     }
   </style>
-  </head>
+</head>
 
 <body>
   <div class="admin-container">
@@ -238,11 +277,11 @@
           <i data-lucide="clipboard-list" width="20" height="20"></i>
           Practice Tests
         </a>
-        <a href="./admin-purchases.html" class="admin-nav-item active">
+        <a href="./admin-purchases.html" class="admin-nav-item">
           <i data-lucide="shopping-cart" width="20" height="20"></i>
           Purchases
         </a>
-        <a href="./admin-videos.html" class="admin-nav-item">
+        <a href="./admin-videos.html" class="admin-nav-item active">
           <i data-lucide="video" width="20" height="20"></i>
           Manage Videos
         </a>
@@ -257,35 +296,59 @@
 
     <main class="admin-main">
       <div class="page-header">
-        <div>
-          <h1>Sales History</h1>
-          <p>Monitor course enrollments and revenue.</p>
-        </div>
+        <h1>Manage Course Videos</h1>
+        <p>Add and manage tutorial videos for your courses.</p>
       </div>
 
-      <div class="card">
-        <div class="table-container">
-          <table class="purchases-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Course</th>
-                <th>Amount</th>
-                <th>Payment ID</th>
-                <th>Status</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="purchases-container">
-              <!-- Purchases will be loaded here -->
-            </tbody>
-          </table>
+      <div class="grid-container">
+        <div class="content-area">
+          <div class="card">
+            <div class="card-header">
+              <h2>Existing Videos</h2>
+            </div>
+            <div class="card-body">
+              <div id="videos-container">
+                <!-- Videos loaded here -->
+                <p style="text-align: center; color: #64748B; padding: 2rem;">Loading videos...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-area">
+          <div class="card">
+            <div class="card-header">
+              <h2>Add New Video</h2>
+            </div>
+            <div class="card-body">
+              <form id="video-form">
+                <div class="form-group">
+                  <label class="form-label">Video Title</label>
+                  <input type="text" id="title" class="form-input" placeholder="e.g. Introduction to Driving" required />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Video URL (YouTube or Direct)</label>
+                  <input type="url" id="video-url" class="form-input" placeholder="https://youtube.com/..." required />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Associated Course</label>
+                  <select id="course-select" class="form-select" required>
+                    <option value="">Select a Course</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submit-btn">Add Video</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   </div>
 
-  <script type="module" src="./admin-purchases.ts"></script>
+  <script type="module" src="./admin-videos.ts"></script>
   <script>
     lucide.createIcons();
   </script>

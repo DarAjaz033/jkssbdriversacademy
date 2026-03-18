@@ -171,13 +171,13 @@ const SESSION_TOKEN_KEY = 'jkssb_session_token';
 // Generates a session token, writes to Firestore & LocalStorage
 export const setupSingleDeviceLogin = async (uid: string) => {
   try {
+    // Set timestamp IMMEDIATELY to start the grace period before Firestore write
+    localStorage.setItem('jkssb_login_time', Date.now().toString());
+
     const token = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString() + Math.random().toString(36).slice(2);
     localStorage.setItem(SESSION_TOKEN_KEY, token);
     const userRef = doc(db, 'users', uid);
     await setDoc(userRef, { sessionToken: token }, { merge: true });
-
-    // Explicitly write login time to trigger logout logic universally
-    localStorage.setItem('jkssb_login_time', Date.now().toString());
 
     return token;
   } catch (error) {
@@ -186,25 +186,40 @@ export const setupSingleDeviceLogin = async (uid: string) => {
   }
 };
 
-let sessionInterval: any = null;
+let sessionUnsubscribe: any = null;
 
 export const initSessionVerifier = (uid: string) => {
-  if (sessionInterval) clearInterval(sessionInterval);
+  if (sessionUnsubscribe) sessionUnsubscribe();
 
-  const verifyToken = async () => {
+  const userRef = doc(db, 'users', uid);
+  sessionUnsubscribe = onSnapshot(userRef, async (snap) => {
     try {
-      const localToken = localStorage.getItem(SESSION_TOKEN_KEY);
-      if (!localToken) return; // If logged out locally, do nothing
+      if (!snap.exists()) return;
 
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (!snap.exists()) return; // User deleted?
+      const localToken = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (!localToken) return;
 
       const firestoreToken = snap.data()?.sessionToken;
 
       // If tokens mismatch, immediate force logout
       if (firestoreToken && firestoreToken !== localToken) {
+        // Skip check if we have local writes pending or if we're in the 5s grace period
+        if (snap.metadata.hasPendingWrites) return;
+
+        const loginTimeStr = localStorage.getItem('jkssb_login_time');
+        const loginTime = parseInt(loginTimeStr || '0');
+        const diff = Date.now() - loginTime;
+
+        if (diff < 8000) {
+          console.log('Session mismatch ignored (Grace period):', diff, 'ms');
+          return;
+        }
+
         console.warn('Session mismatch detected! Another device logged in.');
-        clearInterval(sessionInterval);
+        if (sessionUnsubscribe) {
+          sessionUnsubscribe();
+          sessionUnsubscribe = null;
+        }
         localStorage.removeItem(SESSION_TOKEN_KEY);
 
         await firebaseSignOut(auth);
@@ -213,18 +228,15 @@ export const initSessionVerifier = (uid: string) => {
         window.location.href = './login.html?error=session_conflict';
       }
     } catch (error) {
-      console.warn('Session verifier check failed (network issue?):', error);
+      console.warn('Session verifier check failed:', error);
     }
-  };
-
-  // Poll every 15 seconds exactly as requested for aggressive logout
-  sessionInterval = setInterval(verifyToken, 15 * 1000);
+  });
 };
 
 export const stopSessionVerifier = () => {
-  if (sessionInterval) {
-    clearInterval(sessionInterval);
-    sessionInterval = null;
+  if (sessionUnsubscribe) {
+    sessionUnsubscribe();
+    sessionUnsubscribe = null;
   }
 };
 
@@ -238,14 +250,40 @@ export const clearSessionToken = async (uid: string) => {
 // ── Premium User Check ──────────────────────────────────────────────────────
 export const isPremiumUser = async (userId: string): Promise<boolean> => {
   try {
-    // 1. Whitelist for demo/testing
+    // 1. Whitelist / Admin check
     const user = auth.currentUser;
-    const WHITELIST = ['darjazz033@gmail.com', 'admin@example.com'];
+    const WHITELIST = ['darajaz033@gmail.com', 'jkssbdriversacademy@gmail.com', 'admin@example.com'];
     if (user && user.email && WHITELIST.includes(user.email.toLowerCase())) {
       return true;
     }
 
-    // 2. Check Purchases in Firestore
+    // 2. Check "users" collection for isPremium or role: admin
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      if (userData.isPremium === true || userData.role === 'admin' || userData.isAdmin === true) {
+        return true;
+      }
+    }
+
+    // 3. Check subcollection (App's enrollment method)
+    const subColRef = collection(db, 'purchases', userId, 'courses');
+    const subColSnap = await getDocs(subColRef);
+    const now = new Date();
+    let hasActiveInSub = false;
+    subColSnap.forEach(d => {
+      const data = d.data();
+      if (data.isPurchased === true) {
+        if (!data.expiresAt) hasActiveInSub = true;
+        else {
+          const expiry = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+          if (now <= expiry) hasActiveInSub = true;
+        }
+      }
+    });
+    if (hasActiveInSub) return true;
+
+    // 4. Check Top-level Purchases in Firestore (Legacy/Website method)
     const q = query(
       collection(db, 'purchases'),
       where('userId', '==', userId),
@@ -255,22 +293,20 @@ export const isPremiumUser = async (userId: string): Promise<boolean> => {
 
     if (querySnapshot.empty) return false;
 
-    // Check expiry
-    const now = new Date();
-    let hasActive = false;
+    let hasActiveInLegacy = false;
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       if (!data.expiresAt) {
-        hasActive = true;
+        hasActiveInLegacy = true;
       } else {
         const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
         if (now <= expiryDate) {
-          hasActive = true;
+          hasActiveInLegacy = true;
         }
       }
     });
 
-    return hasActive;
+    return hasActiveInLegacy;
   } catch (error) {
     console.error('Error checking premium status:', error);
     return false;

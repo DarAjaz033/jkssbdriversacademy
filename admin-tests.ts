@@ -110,6 +110,7 @@ class AdminTestsPage {
     const description = (document.getElementById('description') as HTMLTextAreaElement).value;
     const duration = parseInt((document.getElementById('duration') as HTMLInputElement).value);
     const courseId = this.courseSelect.value;
+    const category = (document.getElementById('category') as HTMLSelectElement).value;
 
     this.submitBtn.disabled = true;
     this.submitBtn.textContent = 'Creating...';
@@ -118,7 +119,8 @@ class AdminTestsPage {
       title,
       description,
       questions: this.questions,
-      duration
+      duration,
+      category
     };
 
     if (courseId) {
@@ -214,8 +216,21 @@ class AdminTestsPage {
   private async loadCourses(): Promise<void> {
     const result = await getCourses();
     if (result.success && result.courses) {
+      const canonicalParts = [
+        { id: 'part1', title: 'Part 1 — Traffic Rules & Road Safety' },
+        { id: 'part2', title: 'Part 2 — Motor Vehicle Act' },
+        { id: 'part3', title: 'Part 3 — Mechanical Knowledge' }
+      ];
+
+      const displayCourses = [...result.courses];
+      canonicalParts.forEach(p => {
+        if (!displayCourses.find(c => c.id === p.id)) {
+          displayCourses.unshift(p as any);
+        }
+      });
+
       this.courseSelect.innerHTML = '<option value="">None / General</option>' +
-        result.courses.map(course => `<option value="${course.id}">${course.title}</option>`).join('');
+        displayCourses.map(course => `<option value="${course.id}">${course.title}</option>`).join('');
     }
   }
 }

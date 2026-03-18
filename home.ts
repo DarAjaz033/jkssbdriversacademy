@@ -448,6 +448,29 @@ class HomePage {
     }
 
     if (isEnrolled) {
+      const isFullCourse = course.title.toLowerCase().includes('full course') || course.id === 'full_course' || course.id === 'FullCourse';
+      
+      let actionButtons = `
+        <button class="btn-enrolled enroll-btn" data-course-id="${course.id}" style="background: linear-gradient(90deg, #16A34A, #22C55E);">
+          🎉 Enrolled - Go to Course
+        </button>
+      `;
+
+      if (isFullCourse) {
+        actionButtons = `
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+              <button class="btn-enrolled enroll-btn part-btn" onclick="window.location.href='./my-courses.html#part1'" style="background: #1e293b; padding: 10px 5px; font-size: 11px;">Part I</button>
+              <button class="btn-enrolled enroll-btn part-btn" onclick="window.location.href='./my-courses.html#part2'" style="background: #1e293b; padding: 10px 5px; font-size: 11px;">Part II</button>
+              <button class="btn-enrolled enroll-btn part-btn" onclick="window.location.href='./my-courses.html#part3'" style="background: #1e293b; padding: 10px 5px; font-size: 11px;">Part III</button>
+            </div>
+            <button class="btn-enrolled enroll-btn" data-course-id="${course.id}" style="background: linear-gradient(90deg, #16A34A, #22C55E); margin-top: 4px;">
+              View Full Dashboard
+            </button>
+          </div>
+        `;
+      }
+
       return `
         <div class="card" style="box-shadow: 0 4px 20px rgba(22, 163, 74, 0.15); border: 2px solid rgba(22, 163, 74, 0.3);">
           <div class="card-thumb ${thumb.class}">
@@ -457,9 +480,7 @@ class HomePage {
           </div>
           <div class="card-body">
             <div class="card-title">${escapeHtml(course.title)}</div>
-            <button class="btn-enrolled enroll-btn" data-course-id="${course.id}" style="background: linear-gradient(90deg, #16A34A, #22C55E);">
-              🎉 Enrolled - Go to Course
-            </button>
+            ${actionButtons}
           </div>
         </div>
       `;

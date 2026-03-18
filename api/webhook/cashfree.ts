@@ -61,7 +61,9 @@ async function verifyCashfreeOrder(orderId: string): Promise<any> {
 module.exports = async function handler(req: any, res: any) {
   try {
     // 1. Signature Verification (Security Priority)
-    const signature = req.headers['x-webhook-signature'];
+    // Cashfree production sends: x-cashfree-signature (timestamp+rawBody HMAC-SHA256 base64)
+    const signature = req.headers['x-cashfree-signature'] || req.headers['x-webhook-signature'];
+    const timestamp = req.headers['x-cashfree-timestamp'] || req.headers['x-webhook-timestamp'] || '';
     const webhookSecret = process.env.CASHFREE_WEBHOOK_SECRET;
 
     // For verification, we need the raw body
@@ -72,10 +74,11 @@ module.exports = async function handler(req: any, res: any) {
       rawBody = JSON.stringify(req.body);
     }
 
-    if (!verifySignature(rawBody, signature, webhookSecret)) {
+    // Cashfree production: HMAC of (timestamp + rawBody)
+    const bodyToSign = timestamp ? timestamp + rawBody : rawBody;
+    if (!verifySignature(bodyToSign, signature, webhookSecret)) {
       console.error('❌ Webhook Signature Verification Failed');
-      // We still return 200 to acknowledge receipt as per Cashfree best practice, 
-      // but we log the security event and drop processing.
+      // Return 200 to acknowledge receipt, but drop processing
       return replyOk(res);
     }
     console.log('✅ Webhook Signature Verified.');
@@ -152,47 +155,69 @@ module.exports = async function handler(req: any, res: any) {
         return;
       }
 
+      // Extract identifiers from order_tags (set during create-order)
+      const tagCourseId = verifiedOrder?.order_tags?.course_id || '';
+      const tagUserId = verifiedOrder?.order_tags?.uid || '';
+
       // b) Find Course
-      const coursesRef = collection(db, 'courses');
-      const coursesSnap = await getDocs(coursesRef);
       let matchedCourse: any = null;
-
-      coursesSnap.forEach((cDoc) => {
-        const c = cDoc.data();
-        if (c.paymentLink && formId && (c.paymentLink.includes(formId))) {
-          matchedCourse = { id: cDoc.id, ...c };
+      if (tagCourseId) {
+        // Direct lookup by ID
+        const cSnap = await getDocs(query(collection(db, 'courses'), where('__name__', '==', tagCourseId)));
+        if (!cSnap.empty) {
+          matchedCourse = { id: cSnap.docs[0].id, ...cSnap.docs[0].data() };
         }
-      });
+      } 
+      
+      if (!matchedCourse && formId) {
+        // Fallback to legacy paymentLink matching
+        const coursesRef = collection(db, 'courses');
+        const coursesSnap = await getDocs(coursesRef);
+        coursesSnap.forEach((cDoc) => {
+          const c = cDoc.data();
+          if (c.paymentLink && (c.paymentLink.includes(formId))) {
+            matchedCourse = { id: cDoc.id, ...c };
+          }
+        });
+      }
 
-      if (!matchedCourse) throw new Error(`Course not found for formId: ${formId}`);
+      if (!matchedCourse) throw new Error(`Course not found for formId/tag: ${formId || tagCourseId}`);
 
       // c) Find User
-      const usersRef = collection(db, 'users');
-      let userId: string | null = null;
+      let userId: string | null = tagUserId;
 
-      // Try email
-      if (userEmail) {
-        const qE = query(usersRef, where('email', '==', userEmail));
-        const sE = await getDocs(qE);
-        if (!sE.empty) userId = sE.docs[0].id;
+      if (!userId) {
+        const usersRef = collection(db, 'users');
+        // Try email
+        if (userEmail) {
+          const qE = query(usersRef, where('email', '==', userEmail));
+          const sE = await getDocs(qE);
+          if (!sE.empty) userId = sE.docs[0].id;
+        }
+
+        // Try phone fallback
+        if (!userId && normPhone) {
+          const qP = query(usersRef, where('phone', '==', normPhone));
+          const sP = await getDocs(qP);
+          if (!sP.empty) userId = sP.docs[0].id;
+        }
       }
 
-      // Try phone fallback
-      if (!userId && normPhone) {
-        const qP = query(usersRef, where('phone', '==', normPhone));
-        const sP = await getDocs(qP);
-        if (!sP.empty) userId = sP.docs[0].id;
-      }
-
-      if (!userId) throw new Error(`User not found for ${userEmail || normPhone}`);
+      if (!userId) throw new Error(`User not found for ${userEmail || normPhone || tagUserId}`);
 
       // d) Commit Enrollment
       const enrolledAt = new Date();
       let expiresAt = null;
-      if (matchedCourse.validityDays) {
-        expiresAt = new Date(enrolledAt.getTime() + (matchedCourse.validityDays * 24 * 60 * 60 * 1000));
+      // Handle validityDays correctness (must be a number)
+      const vDays = Number(matchedCourse.validityDays);
+      if (!isNaN(vDays) && vDays > 0) {
+        expiresAt = new Date(enrolledAt.getTime() + (vDays * 24 * 60 * 60 * 1000));
+      } else {
+        // Default 1 year if not set or invalid
+        expiresAt = new Date(enrolledAt.getTime() + (365 * 24 * 60 * 60 * 1000));
       }
 
+      // Write to top-level `purchases`
       const pDoc = doc(collection(db, 'purchases'));
       transaction.set(pDoc, {
         userId,
@@ -203,6 +228,28 @@ module.exports = async function handler(req: any, res: any) {
         purchasedAt: serverTimestamp(),
         expiresAt: expiresAt || null
       });
+
+      // Write to `enrolled/{courseId}/users/{uid}` collection
+      const enrolledUserRef = doc(db, 'enrolled', matchedCourse.id, 'users', userId);
+      transaction.set(enrolledUserRef, {
+        userId,
+        courseId: matchedCourse.id,
+        orderId,
+        enrolledAt: serverTimestamp(),
+        expiresAt: expiresAt || null,
+        status: 'active'
+      }, { merge: true });
+
+      // Write to `purchases/{uid}/courses/{courseId}` (for Flutter compatibility)
+      const userPurchaseRef = doc(db, 'purchases', userId, 'courses', matchedCourse.id);
+      transaction.set(userPurchaseRef, {
+        courseId: matchedCourse.id,
+        courseName: matchedCourse.title,
+        purchasedAt: serverTimestamp(),
+        expiresAt: expiresAt || null,
+        orderId,
+        status: 'active'
+      }, { merge: true });
 
       console.log(`✅ Transaction committed: Course ${matchedCourse.id} unlocked for User ${userId}`);
     });

@@ -1,11 +1,18 @@
 import { getCurrentUser, onAuthChange } from './auth-service';
 import { getCourse, hasUserPurchasedCourse, Course } from './admin-service';
-import { simulatePayment } from './payment-service';
+
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
 
 class CoursePurchasePage {
   private courseContent: HTMLElement;
   private course: Course | null = null;
   private userId: string | null = null;
+  private userEmail: string | null = null;
+  private userName: string | null = null;
 
   constructor() {
     this.courseContent = document.getElementById('course-content') as HTMLElement;
@@ -24,6 +31,8 @@ class CoursePurchasePage {
     onAuthChange(async (user) => {
       if (user) {
         this.userId = user.uid;
+        this.userEmail = user.email || '';
+        this.userName = user.displayName || 'Student';
         await this.loadCourse(courseId);
       } else {
         this.courseContent.innerHTML = `
@@ -98,31 +107,49 @@ class CoursePurchasePage {
     if (!this.course || !this.userId) return;
 
     const purchaseBtn = document.getElementById('purchase-btn') as HTMLButtonElement;
+    purchaseBtn.disabled = true;
+    purchaseBtn.textContent = 'Creating Secure Order...';
 
-    if (this.course.paymentLink) {
-      // Redirect to the live Cashfree payment link in a new tab like WhatsApp
-      purchaseBtn.textContent = 'Opening Secure Checkout...';
-      window.open(this.course.paymentLink, '_blank');
+    try {
+      // Call production backend to create a Cashfree order
+      const response = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: this.course.id,
+          courseName: this.course.title,
+          amount: this.course.price,
+          userId: this.userId,
+          userEmail: this.userEmail,
+          userName: this.userName,
+        })
+      });
 
-      // Reset button state after a short delay since they are in a new tab
-      setTimeout(() => {
-        purchaseBtn.disabled = false;
-        purchaseBtn.textContent = 'Purchase Course';
-      }, 2000);
-    } else {
-      purchaseBtn.disabled = true;
-      purchaseBtn.textContent = 'Processing...';
-
-      const result = await simulatePayment(this.course, this.userId);
-
-      if (result.success) {
-        alert('Purchase successful! You can now access this course.');
-        window.location.href = './my-courses.html';
-      } else {
-        alert('Payment failed: ' + result.error);
-        purchaseBtn.disabled = false;
-        purchaseBtn.textContent = 'Purchase Course';
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to create payment order');
       }
+
+      const { paymentSessionId } = await response.json();
+
+      if (!paymentSessionId) {
+        throw new Error('No payment session returned from server');
+      }
+
+      // Launch Cashfree in-page checkout (keeps user on website)
+      if (typeof window.Cashfree === 'undefined') {
+        throw new Error('Cashfree SDK not loaded. Please refresh the page and try again.');
+      }
+
+      const cashfree = await window.Cashfree({ mode: 'production' });
+      cashfree.checkout({
+        paymentSessionId,
+        redirectTarget: '_self' // Redirect in the same tab
+      });
+    } catch (error: any) {
+      alert('Payment error: ' + (error.message || 'Unknown error'));
+      purchaseBtn.disabled = false;
+      purchaseBtn.textContent = 'Purchase Course';
     }
   }
 }

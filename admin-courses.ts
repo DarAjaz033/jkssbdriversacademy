@@ -113,15 +113,25 @@ class AdminCoursesPage {
     const syllabus = (document.getElementById('syllabus') as HTMLTextAreaElement).value.trim();
     const paymentLink = (document.getElementById('payment-link') as HTMLInputElement).value.trim();
 
+    const category = (document.getElementById('category') as HTMLSelectElement).value;
+    const title = (document.getElementById('title') as HTMLInputElement).value.trim();
+    const price = parseInt((document.getElementById('price') as HTMLInputElement).value);
+    const oldPrice = (document.getElementById('old-price') as HTMLInputElement).value ? parseInt((document.getElementById('old-price') as HTMLInputElement).value) : undefined;
+    const duration = (document.getElementById('duration') as HTMLInputElement).value.trim();
+    const validityDays = (document.getElementById('validity-days') as HTMLInputElement).value ? parseInt((document.getElementById('validity-days') as HTMLInputElement).value) : undefined;
+    const descriptionHeading = (document.getElementById('description-heading') as HTMLInputElement).value.trim();
+
     const courseData: Partial<Course> = {
-      title: (document.getElementById('title') as HTMLInputElement).value.trim(),
+      category,
+      title,
       description,
       syllabus,
-      price: parseInt((document.getElementById('price') as HTMLInputElement).value),
-      oldPrice: (document.getElementById('old-price') as HTMLInputElement).value ? parseInt((document.getElementById('old-price') as HTMLInputElement).value) : undefined,
-      duration: (document.getElementById('duration') as HTMLInputElement).value.trim(),
+      price,
+      oldPrice,
+      duration,
       paymentLink,
-      validityDays: (document.getElementById('validity-days') as HTMLInputElement).value ? parseInt((document.getElementById('validity-days') as HTMLInputElement).value) : undefined,
+      validityDays,
+      descriptionHeading,
       thumbCssClass: (document.getElementById('thumb-css-class') as HTMLSelectElement).value,
       thumbBadge: (document.getElementById('thumb-badge') as HTMLInputElement).value.trim(),
       thumbBadgeStyle: (document.getElementById('thumb-badge-style') as HTMLSelectElement).value,
@@ -308,6 +318,7 @@ class AdminCoursesPage {
     if (!course) return;
 
     this.editingCourseId = courseId;
+    (document.getElementById('category') as HTMLSelectElement).value = course.category || 'Complete Package';
     (document.getElementById('title') as HTMLInputElement).value = course.title;
     (document.getElementById('price') as HTMLInputElement).value = course.price.toString();
     (document.getElementById('old-price') as HTMLInputElement).value = course.oldPrice ? course.oldPrice.toString() : '';
@@ -336,6 +347,7 @@ class AdminCoursesPage {
     this.editingCourseId = null;
     this.form.reset();
     (document.getElementById('thumb-css-class') as HTMLSelectElement).value = 'thumb-fullcourse';
+    (document.getElementById('category') as HTMLSelectElement).value = 'Complete Package';
     (document.getElementById('thumb-badge-style') as HTMLSelectElement).value = 'badge-pop';
     (document.getElementById('description-heading') as HTMLInputElement).value = '';
     this.descriptionPointsContainer.innerHTML = '';
