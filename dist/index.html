@@ -2,11 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta name="theme-color" content="#B45309">
-
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -15,19 +13,17 @@
         'green': '#047857',
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
-        'black': '#000000',
-        'frost': '#E0F2FE'
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
-      const color = themeColors[savedTheme] || '#B45309';
-      let meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = color;
+      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();
   </script>
+  
+  
+
+  
 
 
 
@@ -66,6 +62,8 @@
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rajdhani:wght@400;600;700&display=swap">
 
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
   <script src="https://unpkg.com/lucide@latest" defer></script>
   <style>
     /* Stop original unav-footer from rendering behind fixed containers */
@@ -462,6 +460,9 @@
     /* Navigation buttons removed */
 
     @media (max-width: 480px) {
+      .ajaz-hero {
+        margin-bottom: 60px; /* Push the 'What You'll Get' section down */
+      }
       .ajaz-controls {
         margin-top: 28px;
         gap: 14px;
@@ -598,16 +599,188 @@
         opacity: 0;
       }
     }
+  
+    .home-profile-wrapper {
+      position: relative;
+      display: inline-flex;
+    }
+    .home-profile-badge {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--app-bar-bg, #B45309);
+      background: #f9f4ef;
+      display: none; 
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .home-profile-badge.premium {
+      background: #fbbf24;
+      color: #000;
+      display: flex;
+    }
+    .home-profile-badge.guest {
+      background: #94a3b8;
+      color: #fff;
+      display: flex;
+    }
+
+    /* ═══════════════ INTERACTIVE SYLLABUS EXPANSION ═══════════════ */
+    .syllabus-section {
+      padding: 60px 20px;
+      /* Transparent to blend with theme gradient background */
+      background: transparent;
+    }
+    .syllabus-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .syllabus-card {
+      background: var(--bg-card, #ffffff);
+      border-radius: 20px;
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid rgba(0,0,0,0.05);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .syllabus-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .syllabus-card.active {
+      grid-column: 1 / -1;
+      transform: scale(1.01);
+      cursor: default;
+    }
+    .card-gradient {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(45deg, var(--ajaz-orange), var(--ajaz-amber), var(--ajaz-yellow), var(--ajaz-orange));
+      background-size: 300% 300%;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+      animation: gradientFlow 6s ease infinite;
+    }
+    .syllabus-card.active .card-gradient {
+      opacity: 0.08;
+    }
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
+    .card-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--gradient-primary, linear-gradient(135deg, #B45309 0%, #EA580C 100%));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      margin-bottom: 20px;
+      transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    .syllabus-card:hover .card-icon {
+      transform: rotate(10deg) scale(1.1);
+    }
+    .syllabus-card h3 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: var(--text-primary, #1c1917);
+    }
+    .syllabus-card p {
+      color: var(--text-secondary, #666);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .syllabus-expand {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .syllabus-card.active .syllabus-expand {
+      margin-top: 25px;
+      max-height: 1000px;
+    }
+    .syllabus-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .syllabus-list li {
+      padding: 12px 18px;
+      background: rgba(0,0,0,0.03);
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: all 0.4s ease;
+    }
+    .syllabus-card.active .syllabus-list li {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .syllabus-list li::before {
+      content: '→';
+      color: var(--ajaz-orange);
+      font-weight: bold;
+    }
+    /* Staggered entry */
+    .syllabus-card.active .syllabus-list li:nth-child(1) { transition-delay: 0.1s; }
+    .syllabus-card.active .syllabus-list li:nth-child(2) { transition-delay: 0.15s; }
+    .syllabus-card.active .syllabus-list li:nth-child(3) { transition-delay: 0.2s; }
+    .syllabus-card.active .syllabus-list li:nth-child(4) { transition-delay: 0.25s; }
+    .syllabus-card.active .syllabus-list li:nth-child(5) { transition-delay: 0.3s; }
+    .syllabus-card.active .syllabus-list li:nth-child(6) { transition-delay: 0.35s; }
+
+    [data-theme="black"] .syllabus-card {
+      background: var(--bg-card, #121212);
+      border-color: var(--border, rgba(255,255,255,0.05));
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    [data-theme="black"] .syllabus-list li {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-primary, #ffffff);
+    }
+
+    /* Glow Effect for Active Card */
+    .syllabus-card.active {
+      box-shadow: 0 0 40px rgba(255, 107, 0, 0.15);
+      border: 1px solid rgba(255, 107, 0, 0.2);
+    }
+
   </style>
-  <script type="module" crossorigin src="./assets/firebase-config-D0UifA0H.js"></script>
-  <script type="module" crossorigin src="./assets/auth-service-By807CDz.js"></script>
-  <script type="module" crossorigin src="./assets/global-pdf-viewer-Bl9busOb.js"></script>
-  <script type="module" crossorigin src="./assets/app-CFcmT9CY.js"></script>
+  <script type="module" crossorigin src="./assets/firebase-config-B4XEnROW.js"></script>
+  <script type="module" crossorigin src="./assets/auth-service-DMDvh9zM.js"></script>
+  <script type="module" crossorigin src="./assets/global-pdf-viewer-DNHCjlum.js"></script>
+  <script type="module" crossorigin src="./assets/app-Ck-NAPyf.js"></script>
   <script type="module" crossorigin src="./assets/escape-html-BUkjI-KV.js"></script>
-  <script type="module" crossorigin src="./assets/admin-service-BQGa3a-U.js"></script>
-  <script type="module" crossorigin src="./assets/payment-service-BnsnPGPW.js"></script>
-  <script type="module" crossorigin src="./assets/home-DUJQElBK.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/styles-ClAEePMd.css">
+  <script type="module" crossorigin src="./assets/admin-service-Bd7EHEIN.js"></script>
+  <script type="module" crossorigin src="./assets/home-CoFL-nU5.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/styles-DpUXPVfM.css">
 </head>
 
 <body>
@@ -626,7 +799,8 @@
             <i data-lucide="palette" style="width: 18px; height: 18px; color: var(--app-bar-text);"></i>
           </button>
         </div>
-        <button class="icon-btn" id="profile-btn">
+        <button class="icon-btn" id="profile-btn" style="position: relative;">
+          <div id="home-profile-badge" class="home-profile-badge"></div>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -670,7 +844,7 @@
                       <div class="ajaz-offer-badge">42% OFF — Limited Offer</div>
                       <div class="ajaz-final-price">Rs 1149</div>
                     </div>
-                    <a href="./course-details.html" class="ajaz-enroll-btn">ENROLL NOW</a>
+                    <a href="./course-details.html?id=full_course" class="ajaz-enroll-btn">ENROLL NOW</a>
                   </div>
                 </div>
 
@@ -687,7 +861,7 @@
                       <div class="ajaz-offer-badge">20% OFF — Limited Offer</div>
                       <div class="ajaz-final-price">Rs 399</div>
                     </div>
-                    <a href="./course-details.html" class="ajaz-enroll-btn">ENROLL NOW</a>
+                    <a href="./course-details.html?id=part1" class="ajaz-enroll-btn">ENROLL NOW</a>
                   </div>
                 </div>
 
@@ -704,7 +878,7 @@
                       <div class="ajaz-offer-badge">20% OFF — Limited Offer</div>
                       <div class="ajaz-final-price">Rs 399</div>
                     </div>
-                    <a href="./course-details.html" class="ajaz-enroll-btn">ENROLL NOW</a>
+                    <a href="./course-details.html?id=part2" class="ajaz-enroll-btn">ENROLL NOW</a>
                   </div>
                 </div>
 
@@ -721,7 +895,7 @@
                       <div class="ajaz-offer-badge">20% OFF — Limited Offer</div>
                       <div class="ajaz-final-price">Rs 399</div>
                     </div>
-                    <a href="./course-details.html" class="ajaz-enroll-btn">ENROLL NOW</a>
+                    <a href="./course-details.html?id=part3" class="ajaz-enroll-btn">ENROLL NOW</a>
                   </div>
                 </div>
 
@@ -757,40 +931,103 @@
 
 
 
-          <div class="section-header">
-            <h2>What You'll Get</h2>
-          </div>
+          <section class="syllabus-section">
+            <div class="section-header">
+              <span class="section-subtitle">Comprehensive Coverage</span>
+              <h2>What You'll Get</h2>
+              <p>Master every aspect of the JKSSB Driver Exam with our interactive syllabus.</p>
+            </div>
 
-          <div class="feature-list">
-            <div class="feature-item">
-              <div class="feature-icon"><i data-lucide="traffic-cone"></i></div>
-              <div class="feature-content">
-                <h3>Traffic Rules</h3>
-                <p>Complete traffic rules, signals, and road safety</p>
+            <div class="syllabus-grid">
+              <!-- Card 1: Traffic Rules -->
+              <div class="syllabus-card" onclick="toggleSyllabus(this)">
+                <div class="card-gradient"></div>
+                <div class="card-content">
+                  <div class="card-icon">
+                    <i data-lucide="traffic-cone"></i>
+                  </div>
+                  <h3>Traffic Rules</h3>
+                  <p>Master road signs, signals, and regulations.</p>
+                  <div class="syllabus-expand">
+                    <ul class="syllabus-list">
+                      <li>Mandatory Road Signs</li>
+                      <li>Cautionary Road Signs</li>
+                      <li>Informatory Road Signs</li>
+                      <li>Traffic Signals & Hand Signals</li>
+                      <li>Road Marking & Lane Discipline</li>
+                      <li>Overtaking & Speed Rules</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: MV Act & Rules -->
+              <div class="syllabus-card" onclick="toggleSyllabus(this)">
+                <div class="card-gradient"></div>
+                <div class="card-content">
+                  <div class="card-icon">
+                    <i data-lucide="file-text"></i>
+                  </div>
+                  <h3>MV Act & Rules</h3>
+                  <p>In-depth knowledge of Motor Vehicle laws.</p>
+                  <div class="syllabus-expand">
+                    <ul class="syllabus-list">
+                      <li>Motor Vehicle Act 1988</li>
+                      <li>Central MV Rules 1989</li>
+                      <li>Licensing Procedures</li>
+                      <li>Vehicle Registration Laws</li>
+                      <li>Offences & Penalties</li>
+                      <li>Insurance Requirements</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 3: Mechanical Knowledge -->
+              <div class="syllabus-card" onclick="toggleSyllabus(this)">
+                <div class="card-gradient"></div>
+                <div class="card-content">
+                  <div class="card-icon">
+                    <i data-lucide="settings"></i>
+                  </div>
+                  <h3>Mechanical Knowledge</h3>
+                  <p>Learn vehicle maintenance and troubleshooting.</p>
+                  <div class="syllabus-expand">
+                    <ul class="syllabus-list">
+                      <li>Engine Parts & Working</li>
+                      <li>Cooling & Lubrication Systems</li>
+                      <li>Braking & Steering Systems</li>
+                      <li>Tyre Maintenance & Rotation</li>
+                      <li>Battery & Electrical Systems</li>
+                      <li>Daily Inspection Checklist</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 4: Mock Tests -->
+              <div class="syllabus-card" onclick="toggleSyllabus(this)">
+                <div class="card-gradient"></div>
+                <div class="card-content">
+                  <div class="card-icon">
+                    <i data-lucide="layout-list"></i>
+                  </div>
+                  <h3>Mock Tests</h3>
+                  <p>Real exam environment and practice sets.</p>
+                  <div class="syllabus-expand">
+                    <ul class="syllabus-list">
+                      <li>Topic-wise Practice Sets</li>
+                      <li>Full-length Mock Tests</li>
+                      <li>Previous Year Questions</li>
+                      <li>Performance Analytics</li>
+                      <li>Time Management Tips</li>
+                      <li>Common Mistakes Guide</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i data-lucide="clipboard-list"></i></div>
-              <div class="feature-content">
-                <h3>MV Act & Rules</h3>
-                <p>Motor Vehicle Act 1988 & CMV Rules 1989</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i data-lucide="wrench"></i></div>
-              <div class="feature-content">
-                <h3>Mechanical Knowledge</h3>
-                <p>Vehicle parts, maintenance, and repair</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <div class="feature-icon"><i data-lucide="file-text"></i></div>
-              <div class="feature-content">
-                <h3>Mock Tests</h3>
-                <p>Practice with 2500+ MCQs and explanations</p>
-              </div>
-            </div>
-          </div>
+          </section>
 
           <div class="section-header">
             <h2>Why Choose JKSSB Drivers Academy?</h2>
@@ -1515,6 +1752,27 @@
         }
       }, 50);
     });
+
+    function toggleSyllabus(card) {
+      const allCards = document.querySelectorAll('.syllabus-card');
+      const isExpanded = card.classList.contains('active');
+
+      // Collapse all other cards
+      allCards.forEach(c => {
+        c.classList.remove('active');
+        const content = c.querySelector('.syllabus-expand');
+        if (content) content.style.maxHeight = null;
+      });
+
+      // Toggle current card
+      if (!isExpanded) {
+        card.classList.add('active');
+        const content = card.querySelector('.syllabus-expand');
+        if (content) {
+          content.style.maxHeight = content.scrollHeight + "px";
+        }
+      }
+    }
   </script>
 
 

@@ -2,11 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta name="theme-color" content="#B45309">
-
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -15,30 +13,14 @@
         'green': '#047857',
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
-        'black': '#000000',
-        'frost': '#E0F2FE'
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
-      const color = themeColors[savedTheme] || '#B45309';
-      let meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = color;
+      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();
   </script>
-
   
-
-  
-
-  
-
-  
-
-  
-
   
 
   
@@ -48,7 +30,7 @@
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Privacy Policy | JKSSB Drivers Academy</title>
+  <title>Privacy Policy | JKSSB Drivers Academy</title>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     .policy-content h3 {
@@ -86,11 +68,11 @@
       margin-bottom: var(--spacing-lg);
     }
   </style>
-    <script type="module" crossorigin src="./assets/firebase-config-D0UifA0H.js"></script>
-    <script type="module" crossorigin src="./assets/auth-service-By807CDz.js"></script>
-    <script type="module" crossorigin src="./assets/global-pdf-viewer-Bl9busOb.js"></script>
-    <script type="module" crossorigin src="./assets/app-CFcmT9CY.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/styles-ClAEePMd.css">
+    <script type="module" crossorigin src="./assets/firebase-config-B4XEnROW.js"></script>
+    <script type="module" crossorigin src="./assets/auth-service-DMDvh9zM.js"></script>
+    <script type="module" crossorigin src="./assets/global-pdf-viewer-DNHCjlum.js"></script>
+    <script type="module" crossorigin src="./assets/app-Ck-NAPyf.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/styles-DpUXPVfM.css">
   </head>
 
 <body>
@@ -102,9 +84,7 @@
         </button>
         <div class="app-bar-title">
           <span>Privacy Policy</span>
-        
-          
-          </div>
+        </div>
         <div style="width: 40px;"></div>
       </div>
     </header>
@@ -116,71 +96,98 @@
             <i data-lucide="shield" width="48" height="48"></i>
           </div>
           <h1 class="info-title">Privacy Policy</h1>
-          <p class="policy-date">Last Updated: February 28, 2025</p>
+          <p class="policy-date">Last Updated: March 18, 2026</p>
         </div>
 
-        <h3>1. Introduction</h3>
         <p>
-          Welcome to <strong>JKSSB Drivers Academy</strong> ("we," "us," or "our").
-          This Privacy Policy explains how we collect, use, and protect your personal
-          information when you use our website and mobile application.
+          This Privacy Notice for <strong>JKSSB Drivers Academy</strong> ("we," "us," or "our"), 
+          describes how and why we might access, collect, store, use, and/or share ("process") 
+          your personal information when you use our services ("Services").
         </p>
 
-        <h3>2. Information We Collect</h3>
+        <h3>1. WHAT INFORMATION DO WE COLLECT?</h3>
+        <p>Personal information you disclose to us:</p>
         <ul>
-          <li><strong>Account Information:</strong> Email and password during signup</li>
-          <li><strong>Payment Information:</strong> Processed via secure third-party gateways</li>
-          <li><strong>Usage Data:</strong> Pages visited, session duration</li>
-          <li><strong>Cookies:</strong> Used for login sessions and analytics</li>
+          <li><strong>Names, Phone numbers, Email addresses, mailing addresses</strong></li>
+          <li><strong>Payment Data:</strong> Handled and stored by CASHFREE</li>
+          <li><strong>Social Media Login Data:</strong> Option to register using social media account details</li>
+          <li><strong>Application Data:</strong> Push Notifications permission</li>
+        </ul>
+        <p>Information automatically collected:</p>
+        <ul>
+          <li>IP address, browser and device characteristics, operating system, language preferences, referring URLs, device name, country, location</li>
         </ul>
 
-        <h3>3. How We Use Your Information</h3>
+        <h3>2. HOW DO WE PROCESS YOUR INFORMATION?</h3>
         <ul>
-          <li>Provide access to courses and PDFs</li>
-          <li>Process payments</li>
-          <li>Improve services and security</li>
-          <li>Send transactional emails</li>
+          <li>To facilitate account creation and authentication and otherwise manage user accounts</li>
+          <li>To deliver and facilitate delivery of services to the user</li>
+          <li>To fulfill and manage your orders, payments, returns, and exchanges</li>
+          <li>To evaluate and improve our Services, products, marketing, and your experience</li>
         </ul>
 
-        <h3>4. Data Sharing</h3>
+        <h3>3. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?</h3>
         <p>
-          We do not sell personal data. Information may be shared only with trusted
-          service providers or when legally required.
+          We may share your personal information in specific situations such as business 
+          transfers or through third-party hosted "offer walls" in our application.
         </p>
 
-        <h3>5. Data Security</h3>
+        <h3>4. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?</h3>
         <p>
-          We apply reasonable security measures, but no system is 100% secure.
+          We may use cookies and similar tracking technologies (like web beacons and pixels) 
+          to gather information when you interact with our Services. For more details, see our 
+          <a href="./cookie-policy.html" style="color: var(--color-primary); font-weight: 600;">Cookie Policy</a>.
         </p>
 
-        <h3>6. Cookies</h3>
+        <h3>5. DO WE OFFER ARTIFICIAL INTELLIGENCE-BASED PRODUCTS?</h3>
         <p>
-          Cookies help manage sessions and enhance user experience.
-          Disabling cookies may affect functionality.
+          We offer AI Products powered by third-party service providers, including 
+          <strong>Groq, Gemini, and Grok</strong>. Your input, output, and personal information 
+          will be shared with and processed by these AI Service Providers for AI search 
+          and study assistance.
         </p>
 
-        <h3>7. Google AdSense</h3>
+        <h3>6. HOW DO WE HANDLE YOUR SOCIAL LOGINS?</h3>
         <p>
-          Google may use cookies (including DoubleClick) to show ads.
-          Users can manage preferences via Google Ads Settings.
+          If you choose to register and log in using third-party social media account details, 
+          we will receive certain profile information about you from your provider.
         </p>
 
-        <h3>8. Your Rights</h3>
-        <ul>
-          <li>Access or update your information</li>
-          <li>Request deletion (subject to law)</li>
-          <li>Opt out of marketing emails</li>
-        </ul>
-
-        <h3>9. Policy Updates</h3>
+        <h3>7. HOW LONG DO WE KEEP YOUR INFORMATION?</h3>
         <p>
-          This policy may be updated periodically. Changes will be posted here.
+          We keep your personal information for as long as it is necessary for the purposes 
+          set out in this Privacy Notice, unless a longer retention period is required by law.
         </p>
 
-        <h3>10. Contact</h3>
+        <h3>8. DO WE COLLECT INFORMATION FROM MINORS?</h3>
         <p>
-          <strong>JKSSB Drivers Academy Team</strong><br>
-          Email: <strong>info@jkssbdriversacademy.co.in</strong>
+          We do not knowingly collect or solicit data from children under 18 years of age.
+        </p>
+
+        <h3>9. WHAT ARE YOUR PRIVACY RIGHTS?</h3>
+        <p>
+          You may review, change, or terminate your account at any time. You also have 
+          the right to withdraw your consent at any time.
+        </p>
+
+        <h3>10. CONTROLS FOR DO-NOT-TRACK FEATURES</h3>
+        <p>
+          We do not currently respond to Do-Not-Track ("DNT") browser signals as no 
+          uniform technology standard has been finalized.
+        </p>
+
+        <h3>11. DO WE MAKE UPDATES TO THIS NOTICE?</h3>
+        <p>
+          We may update this Privacy Notice from time to time. The updated version will 
+          be indicated by an updated date at the top of this notice.
+        </p>
+
+        <h3>12. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?</h3>
+        <p>
+          <strong>JKSSB Drivers Academy</strong><br>
+          Kupwara, J&K 193223, India<br>
+          Email: <strong>info@jkssbdriversacademy.co.in</strong><br>
+          Website: <strong>www.jkssbdriversacademy.co.in</strong>
         </p>
       </div>
     </main>
@@ -204,7 +211,7 @@
       <span>More</span>
     </a>
   </nav>
-
+
   <script>
     lucide.createIcons();
   </script>

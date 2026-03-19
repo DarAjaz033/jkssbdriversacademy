@@ -22,6 +22,8 @@ interface Course {
   thumbPartTags?: string;
   thumbBottomCaption?: string;
   paymentLink?: string;
+  thumbnailUrl?: string;
+  emoji?: string;
 }
 
 class CourseDetailsPage {
@@ -128,6 +130,31 @@ class CourseDetailsPage {
   }
 
   private getThumbInfo(course: Course) {
+    if (course.thumbnailUrl || course.emoji) {
+      const badgeStyle = course.thumbBadgeStyle || 'badge-pop';
+      let badgeHtml = '';
+      if (course.thumbBadge) {
+        badgeHtml = `<span class="thumb-badge ${badgeStyle}">${escapeHtml(course.thumbBadge)}</span>`;
+      }
+
+      let innerContent = '';
+      if (course.thumbnailUrl) {
+        innerContent = `<img src="${course.thumbnailUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+      }
+      innerContent += `<div class="thumb-emoji-fallback" style="width:100%; height:100%; display:none; align-items:center; justify-content:center; font-size:60px;">${course.emoji || '📚'}</div>`;
+
+      if (!course.thumbnailUrl && course.emoji) {
+        innerContent = `<div class="thumb-emoji-fallback" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:60px;">${course.emoji}</div>`;
+      }
+
+      return {
+        class: course.thumbCssClass || 'thumb-default',
+        label: course.thumbTopLabel ? escapeHtml(course.thumbTopLabel) : escapeHtml(course.title),
+        badge: badgeHtml,
+        content: innerContent
+      };
+    }
+
     if (course.thumbCssClass) {
       // New dynamic admin-editable thumbnail
       const badgeStyle = course.thumbBadgeStyle || 'badge-pop';
@@ -158,9 +185,11 @@ class CourseDetailsPage {
     }
 
     // Fallback legacy system
-    const title = course.title;
-    const t = title.toLowerCase();
-    if (t.includes('full course')) return {
+    const title = course.title || '';
+    const courseId = course.id || '';
+    const t = (title + ' ' + courseId).toLowerCase();
+
+    if (t.includes('full course') || courseId === 'full_course') return {
       class: 'thumb-fullcourse',
       label: 'JKSSB Driver Full Course',
       badge: '<span class="thumb-badge badge-pop">Popular</span>',
@@ -177,7 +206,8 @@ class CourseDetailsPage {
                   </div>
                     `
     };
-    if (t.includes('part i') && !t.includes('part ii') && !t.includes('part iii')) return {
+
+    if (t.includes('part i') && !t.includes('part ii') && !t.includes('part iii') || courseId === 'part1') return {
       class: 'thumb-part1',
       label: 'JKSSB Driver Part I',
       badge: '<span class="thumb-badge badge-val">Best Value</span>',
@@ -187,7 +217,8 @@ class CourseDetailsPage {
                       <div class="p1-sub">Road Safety & Signals</div>
                         `
     };
-    if (t.includes('part ii') && !t.includes('part iii')) return {
+
+    if (t.includes('part ii') && !t.includes('part iii') || courseId === 'part2') return {
       class: 'thumb-part2',
       label: 'JKSSB Driver Part II',
       badge: '<span class="thumb-badge badge-val">Best Value</span>',
@@ -199,7 +230,8 @@ class CourseDetailsPage {
                                 <div class="mv-by">By JKSSB Drivers Academy</div>
                                   `
     };
-    if (t.includes('part iii')) return {
+
+    if (t.includes('part iii') || courseId === 'part3') return {
       class: 'thumb-part3',
       label: 'JKSSB Driver Part III',
       badge: '<span class="thumb-badge badge-val">Best Value</span>',
@@ -209,10 +241,11 @@ class CourseDetailsPage {
                                       <div class="p3-sub">Mechanical Knowledge</div>
                                         `
     };
-    if (t.includes('mv act') && t.includes('mcq')) return {
+
+    if (t.includes('mv act') && (t.includes('mcq') || t.includes('book')) || courseId === 'mvact_book') return {
       class: 'thumb-mvact',
       label: 'JKSSB Driver MV Act MCQ Book',
-      badge: '',
+      badge: '<span class="thumb-badge badge-new">New</span>',
       content: `
                                         <div class="mvb-italic">Objective Questions Answers</div>
                                           <div class="mvb-main">MOTOR<br>VEHICLE<br>ACT</div>
@@ -221,7 +254,8 @@ class CourseDetailsPage {
                                                 <div class="mvb-by">By JKSSB Drivers Academy</div>
                                                   `
     };
-    if (t.includes('old driver papers') || t.includes('old papers')) return {
+
+    if (t.includes('old driver papers') || t.includes('old papers') || courseId === 'old_papers') return {
       class: 'thumb-oldpapers',
       label: 'JKSSB Driver Old Papers',
       badge: '<span class="thumb-badge badge-new">New</span>',
@@ -233,7 +267,21 @@ class CourseDetailsPage {
                                                           <div class="op-by">By JKSSB Drivers Academy</div>
                                                             `
     };
-    // Default fallback (e.g. for Full Syllabus MCQ Book)
+
+    if (t.includes('mock test') || courseId === 'mock_test') return {
+      class: 'thumb-mocktest',
+      label: 'JKSSB Driver Mock Tests',
+      badge: '<span class="thumb-badge badge-new">New</span>',
+      content: `
+        <div class="mcq-count">FULL<br>MOCK</div>
+        <div class="mcq-sub">Syllabus Based Tests</div>
+        <div class="mcq-line"></div>
+        <div class="mcq-detail">With Proper Explanations</div>
+        <div class="mcq-by">By JKSSB Drivers Academy</div>
+      `
+    };
+
+    // Default fallback (e.g. for Full Syllabus MCQ Book / mcq_book)
     return {
       class: 'thumb-mcqbook',
       label: 'JKSSB Driver MCQ Book',
@@ -348,13 +396,22 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
           window.location.href = `./login.html?redirect=${encodeURIComponent(`course-details.html?id=${course.id}&buy=true`)}`;
           return;
         }
-        if (course.paymentLink) {
-          const originalText = enrollBtn.innerHTML;
-          enrollBtn.innerHTML = 'Opening Secure Checkout...';
-          window.open(course.paymentLink, '_blank');
-          setTimeout(() => enrollBtn.innerHTML = originalText, 2000);
+
+        let pLink = course.paymentLink;
+        const t = course.title.toLowerCase();
+        const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
+
+        if (!pLink || isOldPapers) {
+          if (isOldPapers) {
+            pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
+          }
+        }
+
+        if (pLink) {
+          openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
         } else {
-          window.location.href = `./course-purchase.html?id=${course.id}`;
+          // If no direct payment link, stay on details page or go home
+          window.location.href = `./index.html?buyCourse=${course.id}`;
         }
       });
     }
@@ -362,8 +419,19 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
     // Auto-open logic if returning from login
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('buy') === 'true' && getCurrentUser()) {
-      if (course.paymentLink) {
-        window.open(course.paymentLink, '_blank');
+      const user = getCurrentUser()!;
+      let pLink = course.paymentLink;
+      const t = course.title.toLowerCase();
+      const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
+
+      if (!pLink || isOldPapers) {
+        if (isOldPapers) {
+          pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
+        }
+      }
+
+      if (pLink) {
+        openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
       } else {
         window.location.href = `./course-purchase.html?id=${course.id}`;
       }
@@ -492,7 +560,21 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
     `
     };
 
-    return contentMap[category] || '';
+    return contentMap[category] || `
+      <div class="info-card" style="animation-delay: 0.3s;">
+        <div style="text-align: left;">
+          <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: var(--spacing-md); display: flex; align-items: center; gap: var(--spacing-sm);">
+            <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white;">
+              <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+            </div>
+            <span>Course Details</span>
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.6;">
+            This course includes specialized study materials, practice questions, and expert-curated content to help you excel in the JKSSB Driver Exam.
+          </p>
+        </div>
+      </div>
+    `;
   }
 
   private showError(message: string): void {

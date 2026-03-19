@@ -44,7 +44,7 @@ export interface Course {
   paymentLink?: string;
   validityDays?: number;
   rank?: number;
-  thumbnailUrl?: string; // Legacy/unused
+
   thumbCssClass?: string;
   thumbBadge?: string;
   thumbBadgeStyle?: string;
@@ -53,6 +53,8 @@ export interface Course {
   thumbSubHeading?: string;
   thumbPartTags?: string;
   thumbBottomCaption?: string;
+  thumbnailUrl?: string;
+  emoji?: string;
   pdfIds: string[];
   practiceTestIds: string[];
   createdAt: any;

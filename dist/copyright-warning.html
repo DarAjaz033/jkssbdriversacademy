@@ -2,11 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta name="theme-color" content="#B45309">
-
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -15,19 +13,17 @@
         'green': '#047857',
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
-        'black': '#000000',
-        'frost': '#E0F2FE'
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
-      const color = themeColors[savedTheme] || '#B45309';
-      let meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = color;
+      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();
   </script>
+  
+  
+
+  
 
   
 
@@ -71,11 +67,11 @@
       font-weight: 600;
     }
   </style>
-    <script type="module" crossorigin src="./assets/firebase-config-D0UifA0H.js"></script>
-    <script type="module" crossorigin src="./assets/auth-service-By807CDz.js"></script>
-    <script type="module" crossorigin src="./assets/global-pdf-viewer-Bl9busOb.js"></script>
-    <script type="module" crossorigin src="./assets/app-CFcmT9CY.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/styles-ClAEePMd.css">
+    <script type="module" crossorigin src="./assets/firebase-config-B4XEnROW.js"></script>
+    <script type="module" crossorigin src="./assets/auth-service-DMDvh9zM.js"></script>
+    <script type="module" crossorigin src="./assets/global-pdf-viewer-DNHCjlum.js"></script>
+    <script type="module" crossorigin src="./assets/app-Ck-NAPyf.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/styles-DpUXPVfM.css">
   </head>
 
 <body>

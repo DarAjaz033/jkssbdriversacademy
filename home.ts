@@ -20,6 +20,8 @@ interface Course {
   thumbSubHeading?: string;
   thumbPartTags?: string;
   thumbBottomCaption?: string;
+  thumbnailUrl?: string;
+  emoji?: string;
 }
 
 // ─── Per-user enrolment key ──────────────────────────────────────────────────
@@ -108,9 +110,8 @@ function openCourseModal(course: Course): void {
         </div>
       </div>
 
-      <div class="cdm-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
-        <div class="cdm-footer-price" style="display: flex; flex-direction: column;">
-          ${course.oldPrice ? `<del style="color:var(--text-secondary); font-size:13px; text-decoration-thickness: 1.5px;">₹${course.oldPrice.toLocaleString()}</del>` : ''}
+      <div class="cdm-footer">
+        <div class="cdm-price-box">
           <span style="font-size:22px; font-weight:800; color:var(--text-primary); line-height: 1;">₹${course.price.toLocaleString()}</span>
         </div>
         <button class="${getCurrentUser() ? 'cdm-buy-btn' : 'cdm-buy-btn signin-mode'}" id="cdm-buy-btn-trigger" style="flex: 1; justify-content: center;">
@@ -154,16 +155,23 @@ function openCourseModal(course: Course): void {
       return;
     }
 
-    if (course.paymentLink) {
-      const btn = overlay.querySelector('#cdm-buy-btn-trigger');
-      if (btn) {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Opening...';
-        window.open(course.paymentLink, '_blank');
-        setTimeout(() => btn.innerHTML = originalText, 2000);
+    // Fallback links if missing or incorrect in DB
+    let pLink = course.paymentLink;
+    const t = course.title.toLowerCase();
+    const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
+    
+    if (!pLink || isOldPapers) {
+      if (isOldPapers) {
+        pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
+      } else if (t.includes('full course') || course.id === 'full_course') {
+        pLink = 'https://payments.cashfree.com/forms?code=jkssbfullcourse&formId=FULLCOURSE';
       }
+    }
+
+    if (pLink) {
+      openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
     } else {
-      window.location.href = `./course-purchase.html?id=${course.id}`;
+      window.location.href = `./course-details.html?id=${course.id}`;
     }
   });
 
@@ -254,8 +262,10 @@ class HomePage {
         price: c.price,
         oldPrice: c.oldPrice,
         duration: c.duration,
-        paymentLink: c.paymentLink
-      })).sort((a, b) => {
+        paymentLink: c.paymentLink,
+        thumbnailUrl: c.thumbnailUrl ?? (c as any).thumbnailUrl, // Support both names
+        emoji: (c as any).emoji
+      } as Course)).sort((a, b) => {
         const aEnrolled = enrolledIds.includes(a.id);
         const bEnrolled = enrolledIds.includes(b.id);
         if (aEnrolled && !bEnrolled) return -1;
@@ -288,10 +298,20 @@ class HomePage {
       if (buyCourseId && this.currentUser) {
         const courseToBuy = courses.find(c => c.id === buyCourseId);
         if (courseToBuy && !enrolledIds.includes(courseToBuy.id)) {
-          if (courseToBuy.paymentLink) {
-            openDirectPaymentModal(courseToBuy as AdminCourse, this.currentUser.uid);
+          let pLink = courseToBuy.paymentLink;
+          const t = courseToBuy.title.toLowerCase();
+          const isOldPapers = courseToBuy.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
+
+          if (!pLink || isOldPapers) {
+            if (isOldPapers) {
+              pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
+            }
+          }
+
+          if (pLink) {
+            openDirectPaymentModal({ ...courseToBuy, paymentLink: pLink } as any, this.currentUser.uid);
           } else {
-            window.location.href = `./course-purchase.html?id=${courseToBuy.id}`;
+            window.location.href = `./course-details.html?id=${courseToBuy.id}`;
           }
           // Clean URL
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -317,6 +337,32 @@ class HomePage {
   }
 
   private getThumbInfo(course: Course) {
+    if (course.thumbnailUrl || course.emoji) {
+      // Dynamic thumbnail from the app/database
+      const badgeStyle = course.thumbBadgeStyle || 'badge-pop';
+      let badgeHtml = '';
+      if (course.thumbBadge) {
+        badgeHtml = `<span class="thumb-badge ${badgeStyle}">${escapeHtml(course.thumbBadge)}</span>`;
+      }
+
+      let innerContent = '';
+      if (course.thumbnailUrl) {
+        innerContent = `<img src="${course.thumbnailUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+      }
+      innerContent += `<div class="thumb-emoji-fallback" style="width:100%; height:100%; display:none; align-items:center; justify-content:center; font-size:40px;">${course.emoji || '📚'}</div>`;
+
+      if (!course.thumbnailUrl && course.emoji) {
+        innerContent = `<div class="thumb-emoji-fallback" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:40px;">${course.emoji}</div>`;
+      }
+
+      return {
+        class: course.thumbCssClass || 'thumb-default',
+        label: course.thumbTopLabel ? escapeHtml(course.thumbTopLabel) : escapeHtml(course.title),
+        badge: badgeHtml,
+        content: innerContent
+      };
+    }
+
     if (course.thumbCssClass) {
       // New dynamic admin-editable thumbnail
       const badgeStyle = course.thumbBadgeStyle || 'badge-pop';

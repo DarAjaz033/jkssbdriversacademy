@@ -139,6 +139,18 @@ export const openDirectPaymentModal = (course: Course, userId: string): void => 
     // Webhook dummy registration locally
     await simulatePayment(course, userId);
 
+    // Sync LocalStorage for Home Page immediate update
+    try {
+      const key = `jkssb_enrolled_${userId}`;
+      const existing: string[] = JSON.parse(localStorage.getItem(key) ?? '[]');
+      if (course.id && !existing.includes(course.id)) {
+        existing.push(course.id);
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+    } catch (e) {
+      console.error('Error syncing local storage:', e);
+    }
+
     const showToast = (window as any).showToast;
     if (showToast) {
       showToast('Payment successful! 🎉', 'success');

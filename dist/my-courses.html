@@ -2,11 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta name="theme-color" content="#B45309">
-
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -15,19 +13,17 @@
         'green': '#047857',
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
-        'black': '#000000',
-        'frost': '#E0F2FE'
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
-      const color = themeColors[savedTheme] || '#B45309';
-      let meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = color;
+      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();
   </script>
+  
+  
+
+  
 
   
 
@@ -49,13 +45,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>My Courses | JKSSB Drivers Academy</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon-PcQ0y5Tl.svg">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script type="module" crossorigin src="./assets/my-courses-Ih-0JzaO.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/firebase-config-D0UifA0H.js">
-  <link rel="modulepreload" crossorigin href="./assets/global-pdf-viewer-Bl9busOb.js">
-  <link rel="modulepreload" crossorigin href="./assets/auth-service-By807CDz.js">
-  <link rel="modulepreload" crossorigin href="./assets/admin-service-BQGa3a-U.js">
-  <link rel="stylesheet" crossorigin href="./assets/styles-ClAEePMd.css">
+  <script type="module" crossorigin src="./assets/my-courses-PfM88J_D.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/firebase-config-B4XEnROW.js">
+  <link rel="modulepreload" crossorigin href="./assets/global-pdf-viewer-DNHCjlum.js">
+  <link rel="modulepreload" crossorigin href="./assets/auth-service-DMDvh9zM.js">
+  <link rel="modulepreload" crossorigin href="./assets/admin-service-Bd7EHEIN.js">
+  <link rel="stylesheet" crossorigin href="./assets/styles-DpUXPVfM.css">
 </head>
 
 <body>

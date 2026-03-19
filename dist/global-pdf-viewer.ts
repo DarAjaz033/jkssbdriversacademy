@@ -18,17 +18,16 @@ document.addEventListener('click', async (e: MouseEvent) => {
     }
 
     const a = target.closest('a');
-
     if (!a) return;
 
     const href = a.getAttribute('href') || a.href || '';
     if (!href) return;
 
-    const isPdf = href.toLowerCase().includes('.pdf') || href.includes('firebasestorage.googleapis.com');
-    // For our internal legacy routing params
+    const isPdf = href.toLowerCase().includes('.pdf') || href.includes('firebasestorage.googleapis.com') || a.textContent?.toLowerCase().includes('.pdf');
     const hasViewerParam = href.includes('pdf-viewer.html');
 
     if (isPdf || hasViewerParam) {
+        console.log('[PDF Viewer] Intercepting click for:', href);
         e.preventDefault();
         e.stopPropagation();
 
@@ -41,10 +40,12 @@ document.addEventListener('click', async (e: MouseEvent) => {
         // 2. MASK URL
         window.history.pushState({ pdfOpen: true }, '', window.location.pathname);
 
-        // 3. BOOT IN-PAGE RENDERER AND TRIGGER FULLSCREEN NATIVELY ON CONTAINER
-        await bootSecurePdfViewer(rawPdfUrl);
+        // 3. BOOT IN-PAGE RENDERER
+        bootSecurePdfViewer(rawPdfUrl).catch(err => {
+            console.error('[PDF Viewer] Boot failed:', err);
+        });
     }
-}, true); // Capture phase
+}, true);
 
 
 /* ── HARDWARE FULLSCREEN IGNITER ─────────────────────────────── */
@@ -112,6 +113,30 @@ function triggerStrictFullscreen(element: HTMLElement) {
         return null; // Fallback
     },
 
+    /**
+     * Extracts the object path from a Firebase Storage URL and fetches a fresh download URL.
+     * Prevents "400 Unexpected Server Response" when tokens expire after an hour.
+     */
+    async refreshFirebaseUrl(url: string): Promise<string> {
+        if (!url || !url.includes('firebasestorage.googleapis.com')) return url;
+        
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/o/');
+            if (pathParts.length > 1) {
+                const objectPath = decodeURIComponent(pathParts[1]);
+                const storage = getStorage(app);
+                const fileRef = ref(storage, objectPath);
+                const freshUrl = await getDownloadURL(fileRef);
+                console.log('[PDF Viewer] Injected URL refresh successful');
+                return freshUrl;
+            }
+        } catch (e) {
+            console.warn('[PDF Viewer] URL refresh failed, using original', e);
+        }
+        return url;
+    },
+
     // Secures a fresh token, downloads via Stream, and locks in CacheAPI
     async downloadPdfSafely(btnElement: HTMLElement, pdfUrl: string, pdfName: string) {
         if (!pdfUrl) return;
@@ -131,16 +156,7 @@ function triggerStrictFullscreen(element: HTMLElement) {
             }
 
             // 1. Bypass Expired Tokens (400 Error Prevention)
-            if (finalUrlToFetch.includes('firebasestorage.googleapis.com')) {
-                const urlObj = new URL(finalUrlToFetch);
-                const pathParts = urlObj.pathname.split('/o/');
-                if (pathParts.length > 1) {
-                    const objectPath = decodeURIComponent(pathParts[1]);
-                    const storage = getStorage(app);
-                    const fileRef = ref(storage, objectPath);
-                    finalUrlToFetch = await getDownloadURL(fileRef);
-                }
-            }
+            finalUrlToFetch = await (window as any).FirebaseCacheManager.refreshFirebaseUrl(finalUrlToFetch);
 
             // Fire global toast
             if ((window as any).showToast) (window as any).showToast(`Downloading ${pdfName}...`, 'info');
@@ -242,32 +258,59 @@ async function bootSecurePdfViewer(pdfUrl: string) {
     // 1. INJECT DOM OVERLAY
     const master = document.createElement('div');
     master.id = 'secure-pdf-master';
-    master.style.cssText = `
-        position: fixed;
-        inset: 0;
-        z-index: 2147483647;
-        background: #111;
-        overflow-y: auto;
-        overflow-x: auto; /* Allow horizontal pan */
-        -webkit-overflow-scrolling: touch;
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
+    Object.assign(master.style, {
+        position: 'fixed',
+        inset: 0,
+        background: '#111',
+        zIndex: 2147483647,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontFamily: 'Poppins, sans-serif'
+    });
+
+    // 1. Initial Loading State
+    const loader = document.createElement('div');
+    loader.id = 'pdf-global-loader';
+    loader.innerHTML = `
+        <div class="pdf-spinner"></div>
+        <style>
+            .pdf-spinner {
+                width: 32px;
+                height: 32px;
+                border: 2px solid rgba(255,255,255,0.1);
+                border-top-color: #fbbf24;
+                border-radius: 50%;
+                animation: pdf-spin 0.6s linear infinite;
+            }
+            @keyframes pdf-spin { to { transform: rotate(360deg); } }
+        </style>
     `;
+    master.appendChild(loader);
+    
+    // 1.1 Create the actual scrollable canvas container
+    const pdfContainer = document.createElement('div');
+    pdfContainer.id = 'pdf-canvas-container';
+    Object.assign(pdfContainer.style, {
+        width: '100%',
+        height: '100%',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        overflowAnchor: 'none',
+        display: 'none', // Hidden until first page renders
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px 0',
+        webkitOverflowScrolling: 'touch'
+    });
+    master.appendChild(pdfContainer);
+
+    document.body.appendChild(master);
 
     // Add anti-screenshot / security blocker class (uses CSS filters conceptually)
     master.className = 'strict-security-blur';
-
-    const canvasContainer = document.createElement('div');
-    canvasContainer.id = 'pdf-canvas-container';
-    canvasContainer.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 0;
-    `;
-    master.appendChild(canvasContainer);
 
     // 2. FLOATING EXIT BUTTON
     const exitBtn = document.createElement('button');
@@ -302,6 +345,52 @@ async function bootSecurePdfViewer(pdfUrl: string) {
     };
     master.addEventListener('pointerdown', resetTimer);
     master.addEventListener('touchstart', resetTimer);
+    
+    /**
+     * Robust Security: Block context menu, selection, and common shortcuts
+     */
+    function initSecurity() {
+        // 1. Prevent Right-Click & Text Selection
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('selectstart', e => e.preventDefault());
+        document.addEventListener('copy', e => e.preventDefault());
+        
+        // 2. Prevent Keyboard Shortcuts
+        document.addEventListener('keydown', e => {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+            
+            // Block: Print (Ctrl+P), Save (Ctrl+S), Inspect (F12, Ctrl+Shift+I), Source (Ctrl+U), Copy (Ctrl+C), Select All (Ctrl+A)
+            if (
+                (cmdOrCtrl && ['p', 's', 'u', 'i', 'j', 'c', 'a'].includes(e.key.toLowerCase())) ||
+                e.key === 'F12' ||
+                e.key === 'PrintScreen' ||
+                (e.shiftKey && cmdOrCtrl && ['i', 'j', 'c'].includes(e.key.toUpperCase()))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, true);
+
+        // 3. Blur on Focus Loss (Anti-screenshot heuristic)
+        window.addEventListener('blur', () => master.style.filter = 'blur(15px)');
+        window.addEventListener('focus', () => master.style.filter = 'none');
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') master.style.filter = 'blur(15px)';
+            else master.style.filter = 'none';
+        });
+
+        // 4. Anti-Print / Anti-Screenshot Print Vector
+        window.addEventListener('beforeprint', () => master.style.display = 'none');
+        window.addEventListener('afterprint', () => master.style.display = 'block');
+
+        // 5. Disable CSS Selection
+        document.body.style.userSelect = 'none';
+        (document.body.style as any).webkitUserSelect = 'none';
+    }
+
+    initSecurity();
     resetTimer();
 
     document.body.appendChild(master);
@@ -359,7 +448,9 @@ async function bootSecurePdfViewer(pdfUrl: string) {
         if (currentZoom < MIN_ZOOM) currentZoom = MIN_ZOOM;
         if (currentZoom > MAX_ZOOM) currentZoom = MAX_ZOOM;
 
-        const wraps = canvasContainer.querySelectorAll('.pdf-page-wrap');
+        const container = master.querySelector('#pdf-canvas-container');
+        if (!container) return;
+        const wraps = container.querySelectorAll('.pdf-page-wrap');
         wraps.forEach((wrap: any) => {
             const baseW = wrap.dataset.baseWidth;
             const baseH = wrap.dataset.baseHeight;
@@ -480,11 +571,48 @@ async function bootSecurePdfViewer(pdfUrl: string) {
     // 3. APPLY SECURITY LISTENERS
     applySecurityLockdown();
 
-    // 4. LOAD PDF.js
-    await loadPdfJsIntoMemory();
+    try {
+        // 4. LOAD PDF.js
+        await loadPdfJsIntoMemory();
 
-    // 5. RENDER PDF (Memory/Cache Aware)
-    await renderPdfToCanvasList(pdfUrl, canvasContainer);
+        // 5. RENDER PDF (Memory/Cache Aware)
+        // REFRESH TOKEN TO PREVENT 400 ERROR
+        const freshUrl = await (window as any).FirebaseCacheManager.refreshFirebaseUrl(pdfUrl);
+        
+        console.log('PDF: Starting load task for', freshUrl);
+        const loadingTask = (window as any).pdfjsLib.getDocument({ 
+            url: freshUrl,
+            withCredentials: false
+        });
+        
+        // Silent loading (max speed)
+        loadingTask.onProgress = null;
+        const pdfDoc = await loadingTask.promise;
+        
+        const pageTemp = await pdfDoc.getPage(1);
+        const viewportTemp = pageTemp.getViewport({ scale: 1.0 });
+        
+        const containerWidth = window.innerWidth - 32;
+        const fitScale = containerWidth / viewportTemp.width;
+        currentZoom = fitScale < 0.8 ? fitScale : 1.0;
+        
+        // RENDER FIRST PAGE BEFORE HIDING LOADER
+        await renderPdfToCanvasList(pdfDoc, pdfContainer, currentZoom, loader);
+        
+        // Now safely show container
+        pdfContainer.style.display = 'flex';
+        loader.style.display = 'none';
+
+    } catch (err: any) {
+        console.error('[PDF Viewer] Global Error:', err);
+        loader.innerHTML = `
+            <div style="color:#ef4444; padding:20px; text-align:center;">
+                <p style="font-weight:600;">Unable to open document</p>
+                <p style="font-size:12px; opacity:0.8;">${err.message || 'Unknown Error'}</p>
+                <button onclick="location.reload()" style="margin-top:10px; background:#444; color:white; border:none; padding:5px 15px; border-radius:4px;">Retry</button>
+            </div>
+        `;
+    }
 }
 
 
@@ -600,135 +728,129 @@ async function loadPdfJsIntoMemory(): Promise<void> {
 }
 
 // We load the PDF fully into Canvas nodes.
-async function renderPdfToCanvasList(url: string, container: HTMLElement) {
+async function renderPdfToCanvasList(pdfDoc: any, container: HTMLElement, initialScale: number, loaderToHide?: HTMLElement) {
     try {
-        const loadingDiv = document.createElement('div');
-        container.appendChild(loadingDiv);
+        // Clear container just in case
+        container.innerHTML = '';
 
-        const lib = (window as any).pdfjsLib;
-
-        let pdfData: Uint8Array | null = null;
-        let finalUrlToFetch = url;
-
-        // --- NEW: Firebase Expired Token 400 Bypass ---
-        // If this is a firebasestorage link, the stored token is likely expired.
-        // We must extract the file path and fetch a fresh URL.
-        if (url.includes('firebasestorage.googleapis.com')) {
-            try {
-                // Typical format: https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Ffile.pdf?alt=media&token=...
-                const urlObj = new URL(url);
-                const pathParts = urlObj.pathname.split('/o/'); // splits at the object marker
-                if (pathParts.length > 1) {
-                    const objectPath = decodeURIComponent(pathParts[1]); // e.g. "pdfs/1772028060630_POLLUTION .pdf"
-                    const storage = getStorage(app);
-                    const fileRef = ref(storage, objectPath);
-                    finalUrlToFetch = await getDownloadURL(fileRef); // Fetch fresh token!
-                    console.log("[PDF Viewer] Fetched fresh Firebase token automatically.");
-                }
-            } catch (tokenErr) {
-                console.warn("[PDF Viewer] Could not refresh Firebase token, falling back to original URL.", tokenErr);
+        // Check if watermark already exists on first page to prevent "double watermark"
+        let alreadyHasWatermark = false;
+        try {
+            const firstPage = await pdfDoc.getPage(1);
+            const textContent = await firstPage.getTextContent();
+            const textString = textContent.items.map((item: any) => item.str).join(' ');
+            if (textString.includes('JKSSB Drivers Academy')) {
+                alreadyHasWatermark = true;
+                console.log('PDF: Existing watermark detected. Skipping redundant overlay.');
             }
+        } catch (we) {
+            console.warn('PDF: Could not analyze text layer for watermark.', we);
         }
-
-        // 1. Try to fetch from internal Cache API (if App-Locked Download)
-        if ('caches' in window) {
-            try {
-                // Strip confusing query params for exact cache matching
-                const cacheUrlArr = url.split('?');
-                const cleanCacheUrl = cacheUrlArr[0].includes('firebasestorage')
-                    ? cacheUrlArr.join('?') // keep token for firebase
-                    : cacheUrlArr[0];
-
-                const cache = await caches.open('jkssb-pdf-cache-v1');
-                const cachedResponse = await cache.match(cleanCacheUrl, { ignoreSearch: true });
-                if (cachedResponse) {
-                    const buffer = await cachedResponse.arrayBuffer();
-                    pdfData = new Uint8Array(buffer);
-                }
-            } catch (e) { }
-        }
-
-        // 2. Fallback to direct fetch to bypass strict PDF.js CORS preflights
-        // USING THE FRESH URL `finalUrlToFetch` INSTEAD OF `url`
-        if (!pdfData) {
-            try {
-                const res = await fetch(finalUrlToFetch, { mode: 'cors' });
-                if (!res.ok) throw new Error(`Network response was not ok(${res.status})`);
-                const buffer = await res.arrayBuffer();
-                pdfData = new Uint8Array(buffer);
-            } catch (fetchErr) {
-                // If cors blocks explicit fetch, let PDF.js attempt its internal legacy fetcher
-                console.warn("Fetch failed, falling back to PDF.js native loader:", fetchErr);
-            }
-        }
-
-        // 3. Load purely from memory blob OR native URL if fetch failed
-        const loadingTask = pdfData
-            ? lib.getDocument({ data: pdfData })
-            : lib.getDocument({ url: finalUrlToFetch, withCredentials: false });
-
-        const pdfDoc = await loadingTask.promise;
-
-        loadingDiv.remove();
 
         // 3. Render all pages to canvases sequentially so you can scroll smoothly
         const totalPages = pdfDoc.numPages;
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2.0);
 
+        // Pre-create all page wrappers to stabilize scrollbar and prevent "auto-scroll" jumps
+        const wrappers: HTMLElement[] = [];
         for (let i = 1; i <= totalPages; i++) {
             const page = await pdfDoc.getPage(i);
-
-            // Adjust scale for high DPI mobile screens to keep text perfectly crisp
-            const pixelRatio = window.devicePixelRatio || 1;
-            // Native width calculation to fit viewport perfectly on mobile
-            let viewport = page.getViewport({ scale: 1.0 });
-            let scale = (window.innerWidth - 12) / viewport.width;
-            if (scale > 1.8) scale = 1.8; // Cap for large screens
-            if (scale < 0.5) scale = 0.5;
-
-            viewport = page.getViewport({ scale });
+            const viewport = page.getViewport({ scale: initialScale });
 
             const wrap = document.createElement('div');
             wrap.className = 'pdf-page-wrap';
+            wrap.id = `pdf-page-${i}`;
             wrap.dataset.baseWidth = viewport.width.toString();
             wrap.dataset.baseHeight = viewport.height.toString();
             wrap.style.cssText = `
                 position: relative;
-                margin - bottom: 8px;
+                width: ${viewport.width}px;
+                height: ${viewport.height}px;
+                flex-shrink: 0;
+                margin-bottom: 12px;
                 background: white;
-                box - shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                border - radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                border-radius: 4px;
                 overflow: hidden;
-                `;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            // Add a subtle loader per page
+            wrap.innerHTML = `<div class="p-loader" style="width:20px; height:20px; border:2px solid #333; border-top-color:#ff6b00; border-radius:50%; animation:spin 0.8s linear infinite;"></div>`;
+            
+            container.appendChild(wrap);
+            wrappers.push(wrap);
+        }
 
+        // Now show container immediately
+        if (loaderToHide) loaderToHide.style.display = 'none';
+        container.style.display = 'flex';
+
+        // 4. Use IntersectionObserver to render pages only when needed
+        const observerOptions = {
+            root: container,
+            rootMargin: '600px', // Pre-render pages before they enter view
+            threshold: 0.01
+        };
+
+        const renderPage = async (pageIdx: number, wrap: HTMLElement) => {
+            if (wrap.dataset.rendered === 'true') return;
+            wrap.dataset.rendered = 'true';
+            
+            const page = await pdfDoc.getPage(pageIdx);
+            const viewport = page.getViewport({ scale: initialScale });
+            
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d')!;
-
-            // Higher resolution backing store
+            const ctx = canvas.getContext('2d', { alpha: false })!;
+            
             canvas.width = viewport.width * pixelRatio;
             canvas.height = viewport.height * pixelRatio;
-            canvas.style.width = `${viewport.width} px`;
-            canvas.style.height = `${viewport.height} px`;
+            canvas.style.width = `${viewport.width}px`;
+            canvas.style.height = `${viewport.height}px`;
             canvas.style.display = 'block';
-
             ctx.scale(pixelRatio, pixelRatio);
-
-            wrap.appendChild(canvas);
-            container.appendChild(wrap);
-
-            // Render
+            
             await page.render({ canvasContext: ctx, viewport }).promise;
-        }
+            
+            // DRAW DIAGONAL WATERMARK AFTER PDF RENDERS (Only if not already present)
+            if (!alreadyHasWatermark) {
+                ctx.save();
+                ctx.translate(viewport.width / 2, viewport.height / 2);
+                ctx.rotate(-45 * Math.PI / 180);
+                ctx.font = `bold ${Math.max(16, viewport.width / 12)}px Poppins, Arial`;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('JKSSB Drivers Academy', 0, 0);
+                ctx.restore();
+            }
+
+            wrap.innerHTML = '';
+            wrap.appendChild(canvas);
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const idx = wrappers.indexOf(entry.target as HTMLElement) + 1;
+                    renderPage(idx, entry.target as HTMLElement);
+                }
+            });
+        }, observerOptions);
+
+        wrappers.forEach(w => observer.observe(w));
 
     } catch (e: any) {
         console.error('PDF Render Error', e);
         const errDesc = e?.message || e?.name || String(e);
         container.innerHTML = `
-                    < div style = "color:#ef4444; margin-top:30vh; font-family:Poppins; text-align:center; padding: 0 20px;" >
-                        <h3>Failed to load document </h3>
-                            < p style = "font-size: 13px; opacity: 0.8; word-break: break-all;" > Error Details: ${errDesc} </p>
-                                < p style = "font-size: 12px; margin-top:20px;" > (If this says "Network response was not ok" or "Failed to fetch", your Firebase Storage bucket is actively blocking this website.You must apply the CORS rules in Google Cloud Shell).</p>
+            <div style="color:#ef4444; margin-top:30vh; font-family:Poppins; text-align:center; padding: 0 20px;">
+                <h3>Failed to load document</h3>
+                <p style="font-size: 13px; opacity: 0.8; word-break: break-all;">Error Details: ${errDesc}</p>
+                <p style="font-size: 12px; margin-top:20px;">(If this says "Network response was not ok" or "Failed to fetch", your Firebase Storage bucket is actively blocking this website. You must apply the CORS rules in Google Cloud Shell).</p>
             </div>
-                `;
+        `;
     }
 }
 

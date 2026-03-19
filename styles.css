@@ -3777,6 +3777,15 @@ body::before {
 .cdm-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border);
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+}
+
+.cdm-price-box {
+  display: flex;
+  flex-direction: column;
 }
 
 .cdm-buy-btn {

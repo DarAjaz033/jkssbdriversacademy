@@ -2,11 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta name="theme-color" content="#B45309">
-
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -15,19 +13,17 @@
         'green': '#047857',
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
-        'black': '#000000',
-        'frost': '#E0F2FE'
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
-      const color = themeColors[savedTheme] || '#B45309';
-      let meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        document.head.appendChild(meta);
-      }
-      meta.content = color;
+      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();
   </script>
+  
+  
+
+  
 
   
 
@@ -395,10 +391,10 @@
       bottom: 0 !important;
     }
   </style>
-    <script type="module" crossorigin src="./assets/practice-test-5IIIxQUF.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/firebase-config-D0UifA0H.js">
+    <script type="module" crossorigin src="./assets/practice-test-Col4APOE.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/firebase-config-B4XEnROW.js">
     <link rel="modulepreload" crossorigin href="./assets/escape-html-BUkjI-KV.js">
-    <link rel="stylesheet" crossorigin href="./assets/styles-ClAEePMd.css">
+    <link rel="stylesheet" crossorigin href="./assets/styles-DpUXPVfM.css">
   </head>
 
 <body>
