@@ -130,6 +130,18 @@ export const openDirectPaymentModal = (course: Course, userId: string): void => 
 
   document.body.appendChild(overlay);
 
+  // LOG PENDING ORDER for Custom Links tracking
+  if (course.paymentLink) {
+    const tempOrderId = `FORM_${course.id?.substring(0, 4)}_${Date.now()}`;
+    createPurchase({
+      userId,
+      courseId: course.id!,
+      amount: course.price,
+      paymentId: tempOrderId,
+      status: 'pending'
+    }).catch(err => console.warn('Failed to log pending custom form order:', err));
+  }
+
   const closeBtn = overlay.querySelector('.cdm-close');
   closeBtn?.addEventListener('click', () => overlay.remove());
 

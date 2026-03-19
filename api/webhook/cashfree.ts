@@ -223,7 +223,7 @@ module.exports = async function handler(req: any, res: any) {
         expiresAt = new Date(enrolledAt.getTime() + (365 * 24 * 60 * 60 * 1000));
       }
 
-      // Write to top-level `purchases`
+      // 1. Write to top-level `purchases`
       const pDoc = doc(collection(db, 'purchases'));
       transaction.set(pDoc, {
         userId,
@@ -235,7 +235,7 @@ module.exports = async function handler(req: any, res: any) {
         expiresAt: expiresAt || null
       });
 
-      // Write to `enrolled/{courseId}/users/{uid}` collection
+      // 2. Write to `enrolled/{courseId}/users/{uid}` collection
       const enrolledUserRef = doc(db, 'enrolled', matchedCourse.id, 'users', userId);
       transaction.set(enrolledUserRef, {
         userId,
@@ -246,7 +246,7 @@ module.exports = async function handler(req: any, res: any) {
         status: 'active'
       }, { merge: true });
 
-      // Write to `purchases/{uid}/courses/{courseId}` (for Flutter compatibility)
+      // 3. Write to `purchases/{uid}/courses/{courseId}` (for Flutter compatibility)
       const userPurchaseRef = doc(db, 'purchases', userId, 'courses', matchedCourse.id);
       transaction.set(userPurchaseRef, {
         courseId: matchedCourse.id,
@@ -255,6 +255,14 @@ module.exports = async function handler(req: any, res: any) {
         expiresAt: expiresAt || null,
         orderId,
         status: 'active'
+      }, { merge: true });
+
+      // 4. Update the `orders` collection to PAID
+      const orderDocRef = doc(db, 'orders', orderId);
+      transaction.set(orderDocRef, {
+        status: 'PAID',
+        updatedAt: serverTimestamp(),
+        verifiedVia: 'webhook'
       }, { merge: true });
 
       console.log(`✅ Transaction committed: Course ${matchedCourse.id} unlocked for User ${userId}`);

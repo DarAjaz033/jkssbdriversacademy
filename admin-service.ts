@@ -565,14 +565,60 @@ export const deletePracticeTest = async (testId: string) => {
 };
 
 // Purchase Management
+// Purchase Management with Order Tracking & Synchronization
 export const createPurchase = async (purchase: Omit<Purchase, 'id' | 'purchasedAt'>) => {
   try {
-    const docRef = await addDoc(collection(db, 'purchases'), {
+    const { userId, courseId, status, amount, paymentId } = purchase;
+    const now = serverTimestamp();
+    
+    // 1. Log to `orders` collection for tracking (even if pending)
+    if (paymentId) {
+      const orderRef = doc(db, 'orders', paymentId);
+      await setDoc(orderRef, {
+        orderId: paymentId,
+        userId,
+        courseId,
+        amount,
+        status: (status === 'completed' || status === 'success' || status === 'active') ? 'PAID' : 'PENDING',
+        createdAt: now,
+        updatedAt: now,
+        platform: 'web'
+      }, { merge: true });
+    }
+
+    // 2. Add to top-level `purchases` 
+    // (This is used for history and admin reports)
+    const purchaseDocRef = await addDoc(collection(db, 'purchases'), {
       ...purchase,
-      purchasedAt: serverTimestamp()
+      purchasedAt: now
     });
-    return { success: true, id: docRef.id };
+
+    // 3. If payment is successful, unlock the course in structural collections
+    if (status === 'completed' || status === 'success' || status === 'active') {
+      
+      // Unlock for central permission check
+      // enrolled/{courseId}/users/{uid}
+      await setDoc(doc(db, 'enrolled', courseId, 'users', userId), {
+        userId,
+        courseId,
+        enrolledAt: now,
+        status: 'active'
+      }, { merge: true });
+
+      // Unlock for user's My Courses page (App compatibility)
+      // purchases/{uid}/courses/{courseId}
+      await setDoc(doc(db, 'purchases', userId, 'courses', courseId), {
+        courseId,
+        isPurchased: true,
+        purchasedAt: now,
+        status: 'active',
+        orderId: paymentId
+      }, { merge: true });
+    }
+
+    return { success: true, id: purchaseDocRef.id };
   } catch (error: any) {
+    console.error('Error in createPurchase syncing logic:', error);
     return { success: false, error: error.message };
   }
 };

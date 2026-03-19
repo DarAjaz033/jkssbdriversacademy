@@ -23,6 +23,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const orderId = `WEB_${userId.substring(0, 5)}_${Date.now()}`;
 
+  // Log "PENDING" order to Firestore for tracking
+  try {
+    const { initializeApp, getApp, getApps } = await import('firebase/app');
+    const { getFirestore, doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+
+    const firebaseConfig = {
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.FIREBASE_APP_ID
+    };
+
+    const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(fbApp);
+
+    await setDoc(doc(db, 'orders', orderId), {
+      orderId,
+      userId,
+      userEmail: userEmail || '',
+      courseId,
+      courseName: courseName || '',
+      amount,
+      status: 'PENDING',
+      createdAt: serverTimestamp(),
+      platform: 'web'
+    });
+  } catch (dbError: any) {
+    console.warn('Failed to log pending order to Firestore:', dbError.message);
+    // Continue anyway to show the payment modal
+  }
+
   try {
     const response = await fetch(`${CASHFREE_BASE_URL}/orders`, {
       method: 'POST',
