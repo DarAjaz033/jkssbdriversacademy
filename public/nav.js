@@ -66,11 +66,12 @@
       '#unav-root {' +
       'position:fixed;bottom:0;left:0;right:0;z-index:9999;' +
       'display:flex;align-items:stretch;height:62px;' +
-      'background:var(--app-bar-bg, linear-gradient(135deg, #B45309 0%, #D97706 50%, #EA580C 100%));' +
+      'background:var(--app-bar-bg, #B45309);' +
       'border-top:1px solid var(--border, rgba(0,0,0,0.09));' +
+      'color:var(--app-bar-text, #ffffff);' +
       'box-shadow:0 -2px 10px var(--shadow, rgba(0,0,0,0.06));' +
       'padding-bottom:env(safe-area-inset-bottom,0);' +
-      'transition: background 0.3s, border-color 0.3s;' +
+      'transition: background 0.3s, border-color 0.3s, color 0.3s;' +
       '}' +
       '#unav-root a {' +
       'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
@@ -78,8 +79,8 @@
       'font-family:"Poppins",system-ui,sans-serif; border-radius:12px; margin:4px 2px; padding:4px 0;' +
       '-webkit-tap-highlight-color:transparent;transition:background 0.2s, color 0.18s;' +
       '}' +
-      '#unav-root a.active { color:#ffffff; background:rgba(255,255,255,0.18); box-shadow:0 2px 8px rgba(0,0,0,0.1); }' +
-      '#unav-root a:hover:not(.active) { color:#ffffff; }' +
+      '#unav-root a.active { color:var(--app-bar-text, #ffffff); background:rgba(255,255,255,0.18); box-shadow:0 2px 8px rgba(0,0,0,0.1); }' +
+      '#unav-root a:hover:not(.active) { color:var(--app-bar-text, #ffffff); opacity:0.8; }' +
       '#unav-root a svg { flex-shrink:0; }' +
 
       /* ── Footer ── */
@@ -132,7 +133,8 @@
       '[data-theme="golden"] .unav-footer-clone { background: linear-gradient(135deg, #AA8A2E 0%, #D4AF37 50%, #FFD700 100%) !important; color: #333333 !important; }' +
       '[data-theme="black"] .unav-footer-clone { background: linear-gradient(135deg, #0A0A0A 0%, #171717 50%, #404040 100%) !important; color: #FFFFFF !important; }' +
       '[data-theme="blue"] .unav-footer-clone { background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #60A5FA 100%) !important; color: #FFFFFF !important; }' +
-      '[data-theme="frost"] .unav-footer-clone { background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #FFFFFF 100%) !important; color: #1C1917 !important; }';
+      '[data-theme="frost"] .unav-footer-clone { background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #FFFFFF 100%) !important; color: #1C1917 !important; }' +
+      '[data-theme="minimal"] .unav-footer-clone { background: #FFFFFF !important; color: #000000 !important; border-top: 1px solid #e2e8f0 !important; }';
 
     document.head.appendChild(style);
   }
@@ -238,7 +240,7 @@
 
   /* ── Universal Theme Switcher ────────────────────────────────── */
   function initThemeSwitcher() {
-    var themes = ['default', 'green', 'blue', 'golden', 'black', 'frost'];
+    var themes = ['default', 'minimal', 'green', 'blue', 'golden', 'black', 'frost'];
     var themeBtn = document.getElementById('theme-toggle-nav');
     var themeIcon = themeBtn ? themeBtn.querySelector('i') : null;
 
@@ -249,7 +251,8 @@
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
         'black': '#000000',
-        'frost': '#E0F2FE'
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
 
       const color = themeColors[theme] || '#B45309';
@@ -265,7 +268,7 @@
         if (theme === 'default') {
           themeBtn.style.background = 'transparent';
           if (themeIcon) themeIcon.style.color = 'var(--app-bar-text)';
-        } else if (theme === 'frost') {
+        } else if (theme === 'frost' || theme === 'minimal') {
           themeBtn.style.background = 'rgba(0,0,0,0.05)';
           if (themeIcon) themeIcon.style.color = '#4B5563';
         } else {
@@ -275,8 +278,11 @@
       }
     }
 
-    var initialTheme = document.documentElement.getAttribute('data-theme') || 'default';
+    var initialTheme = localStorage.getItem('siteTheme') || 'minimal';
     updateThemeMeta(initialTheme);
+    if (initialTheme !== 'default') {
+      document.documentElement.setAttribute('data-theme', initialTheme);
+    }
 
     if (!themeBtn) return;
 

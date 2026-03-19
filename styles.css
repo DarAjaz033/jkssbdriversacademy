@@ -5267,3 +5267,154 @@ body::before {
     height: auto;
   }
 }
+
+/* Minimal (Normal B&W) Theme */
+[data-theme="minimal"] {
+  --primary: #000000 !important;
+  --bg-app: #ffffff !important;
+  --bg-card: #ffffff !important;
+  --text-primary: #000000 !important;
+  --text-secondary: #4b5563 !important;
+  --text-tertiary: #9ca3af !important;
+  --border: #e2e8f0 !important;
+  --shadow: rgba(0, 0, 0, 0.05) !important;
+
+  --gradient-primary: none !important;
+  --gradient-secondary: none !important;
+  --gradient-hero: none !important;
+  --gradient-liquid: none !important;
+  --gradient-bg: #ffffff !important;
+  --gradient-bg-light: #ffffff !important;
+
+  --app-bar-bg: #ffffff !important;
+  --app-bar-text: #000000 !important;
+}
+
+[data-theme="minimal"] body,
+[data-theme="minimal"] #app,
+[data-theme="minimal"] .ajaz-hero,
+[data-theme="minimal"] .app-bar,
+[data-theme="minimal"] .profile-hero-bg,
+[data-theme="minimal"] .guest-hero-bg {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #000000 !important;
+}
+
+/* High Contrast Overrides for Minimal */
+[data-theme="minimal"] .ajaz-course-name,
+[data-theme="minimal"] .ajaz-final-price {
+  -webkit-text-fill-color: #000000 !important;
+  background: none !important;
+  color: #000000 !important;
+}
+
+
+
+[data-theme="minimal"] .ajaz-card-face {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="minimal"] .ajaz-badge {
+  background: #f3f4f6 !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+}
+
+[data-theme="minimal"] .hero-name,
+[data-theme="minimal"] .hero-email,
+[data-theme="minimal"] .hero-title,
+[data-theme="minimal"] .guest-title,
+[data-theme="minimal"] .guest-sub,
+[data-theme="minimal"] .app-bar-title span,
+[data-theme="minimal"] .app-bar-title i {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+[data-theme="minimal"] .avatar-inner {
+  color: #000000 !important;
+}
+
+[data-theme="minimal"] .icon-btn {
+  background: #ffffff !important;
+  border: 1px solid #000000 !important;
+  color: #000000 !important;
+}
+
+[data-theme="minimal"] .icon-btn:hover {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Additional Minimal Theme Overrides */
+[data-theme="minimal"] .course-card,
+[data-theme="minimal"] .info-card,
+[data-theme="minimal"] .stat-item,
+[data-theme="minimal"] .feature-item {
+  background: #ffffff !important;
+  border: 1px solid #000000 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-theme="minimal"] .course-card *,
+[data-theme="minimal"] .info-card *,
+[data-theme="minimal"] .stat-item *,
+[data-theme="minimal"] .feature-item *,
+[data-theme="minimal"] .ajaz-course-name,
+[data-theme="minimal"] .ajaz-final-price,
+[data-theme="minimal"] .ajaz-old-price,
+[data-theme="minimal"] .ajaz-stats-label,
+[data-theme="minimal"] .ajaz-stats-value {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+[data-theme="minimal"] .ajaz-enroll-btn,
+[data-theme="minimal"] .ajaz-buy-btn,
+[data-theme="minimal"] .cdm-buy-btn,
+[data-theme="minimal"] .view-details-btn,
+[data-theme="minimal"] .enroll-btn,
+[data-theme="minimal"] .btn-primary,
+[data-theme="minimal"] #course-enroll-btn {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="minimal"] .ajaz-enroll-btn:hover,
+[data-theme="minimal"] .cdm-buy-btn:hover,
+[data-theme="minimal"] .enroll-btn:hover,
+[data-theme="minimal"] .btn-primary:hover,
+[data-theme="minimal"] #course-enroll-btn:hover {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="minimal"] .ajaz-secondary-btn,
+[data-theme="minimal"] .btn-secondary {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+[data-theme="minimal"] .app-bar {
+  border-bottom: 2px solid #000000 !important;
+}
+
+[data-theme="minimal"] .unav-root {
+  background: #ffffff !important;
+  border-top: 2px solid #000000 !important;
+}
+
+[data-theme="minimal"] .unav-item i,
+[data-theme="minimal"] .unav-item span {
+  color: #000000 !important;
+}
+
+[data-theme="minimal"] .unav-item.active {
+  background: rgba(0, 0, 0, 0.1) !important;
+}

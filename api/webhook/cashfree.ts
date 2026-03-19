@@ -163,9 +163,15 @@ module.exports = async function handler(req: any, res: any) {
       let matchedCourse: any = null;
       if (tagCourseId) {
         // Direct lookup by ID
-        const cSnap = await getDocs(query(collection(db, 'courses'), where('__name__', '==', tagCourseId)));
-        if (!cSnap.empty) {
-          matchedCourse = { id: cSnap.docs[0].id, ...cSnap.docs[0].data() };
+        try {
+          const { getDoc, doc } = await import('firebase/firestore');
+          const courseRef = doc(db, 'courses', tagCourseId);
+          const courseSnap = await getDoc(courseRef);
+          if (courseSnap.exists()) {
+            matchedCourse = { id: courseSnap.id, ...courseSnap.data() };
+          }
+        } catch (e: any) {
+          console.error("Failed to load course via direct lookup:", e.message);
         }
       } 
       

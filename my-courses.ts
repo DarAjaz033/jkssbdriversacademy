@@ -152,10 +152,67 @@ class MyCoursesPage {
       .mc-tab-content { display: none; }
       .mc-tab-content.active { display: block; }
 
-      /* Full Course specific - Part indicator */
       .mc-part-badge {
         font-size: 10px; font-weight: 800; text-transform: uppercase; color: rgba(255,255,255,0.9);
         background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; margin-right: 6px;
+      }
+
+      /* Minimal Theme Overrides */
+      [data-theme="minimal"] .mc-face {
+        background: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      [data-theme="minimal"] .mc-title,
+      [data-theme="minimal"] .mc-enrolled,
+      [data-theme="minimal"] .mc-icon,
+      [data-theme="minimal"] .mc-btn {
+        color: #000000 !important;
+      }
+      [data-theme="minimal"] .mc-title { text-shadow: none !important; }
+      [data-theme="minimal"] .mc-enrolled {
+        background: #f3f4f6 !important;
+        border-color: #000000 !important;
+      }
+      [data-theme="minimal"] .mc-icon {
+        background: #f3f4f6 !important;
+        border-color: #000000 !important;
+      }
+      [data-theme="minimal"] .mc-btn {
+        background: #ffffff !important;
+        border-color: #000000 !important;
+      }
+      [data-theme="minimal"] .mc-btn:hover {
+        background: #000000 !important;
+        color: #ffffff !important;
+      }
+      [data-theme="minimal"] .mc-face::before,
+      [data-theme="minimal"] .mc-face::after {
+        display: none !important;
+      }
+      [data-theme="minimal"] .mc-part-badge {
+        background: #000000 !important;
+        color: #ffffff !important;
+      }
+      [data-theme="minimal"] .mc-item-badge {
+        background: #000000 !important;
+        color: #ffffff !important;
+      }
+      [data-theme="minimal"] .mc-item-txt {
+        color: #000000 !important;
+        font-weight: 600 !important;
+      }
+
+      /* Revoked Card Theme Support */
+      .mc-card.revoked .mc-face {
+        background: var(--bg-card) !important;
+        border: 1px solid #ef4444 !important;
+      }
+      .mc-card.revoked .mc-title {
+        color: var(--text-primary) !important;
+        text-shadow: none !important;
+      }
+      .mc-card.revoked p {
+        color: #ef4444 !important;
       }
     `;
     document.head.appendChild(s);
@@ -257,17 +314,17 @@ class MyCoursesPage {
 
   private buildRevokedCard(course: Course): string {
     return `
-      <div class="mc-card revoked" style="filter: grayscale(0.5); border-color: #ef4444; opacity: 0.85;">
-        <div class="mc-face" style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%);">
+      <div class="mc-card revoked" style="filter: grayscale(0.2); border-color: #ef4444; opacity: 1;">
+        <div class="mc-face">
           <span class="mc-enrolled" style="background: #ef4444; border-color: #fca5a5; color: #fff;">! Access Revoked</span>
           <div>
-            <div class="mc-icon" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+            <div class="mc-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             </div>
-            <div class="mc-title" style="color: #f3f4f6;">${course.title}</div>
+            <div class="mc-title">${course.title}</div>
           </div>
-          <div style="background: rgba(239, 68, 68, 0.1); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-top: 10px;">
-            <p style="margin: 0; color: #fca5a5; font-size: 11px; font-weight: 500; line-height: 1.4; text-align: center;">
+          <div style="background: rgba(239, 68, 68, 0.05); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-top: 10px;">
+            <p style="margin: 0; font-size: 11px; font-weight: 600; line-height: 1.4; text-align: center;">
               Admin has revoked access to this course. Please contact support if you believe this is a mistake.
             </p>
           </div>

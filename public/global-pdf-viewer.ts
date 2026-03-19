@@ -381,7 +381,11 @@ async function bootSecurePdfViewer(pdfUrl: string) {
             else master.style.filter = 'none';
         });
 
-        // 4. Disable CSS Selection
+        // 4. Anti-Print / Anti-Screenshot Print Vector
+        window.addEventListener('beforeprint', () => master.style.display = 'none');
+        window.addEventListener('afterprint', () => master.style.display = 'block');
+
+        // 5. Disable CSS Selection
         document.body.style.userSelect = 'none';
         (document.body.style as any).webkitUserSelect = 'none';
     }

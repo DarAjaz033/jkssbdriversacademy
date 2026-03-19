@@ -3,7 +3,7 @@ const path = require('path');
 
 const themeScript = `  <script>
     (function () {
-      const savedTheme = localStorage.getItem('siteTheme') || 'default';
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
       if (savedTheme !== 'default') {
         document.documentElement.setAttribute('data-theme', savedTheme);
       }
@@ -13,7 +13,8 @@ const themeScript = `  <script>
         'blue': '#1E40AF',
         'golden': '#AA8A2E',
         'black': '#0A0A0A',
-        'frost': '#E0F2FE'
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
       };
       document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
     })();

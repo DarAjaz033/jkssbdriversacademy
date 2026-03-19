@@ -92,25 +92,42 @@ module.exports = async function handler(req: any, res: any) {
                 return;
             }
 
+            // Extract identifiers from order_tags
+            const tagCourseId = verifiedOrder?.order_tags?.course_id || '';
+            const tagUserId = verifiedOrder?.order_tags?.uid || '';
+
             // b) Find Course
-            const coursesRef = collection(db, 'courses');
-            const coursesSnap = await getDocs(coursesRef);
             let matchedCourse: any = null;
-
-            coursesSnap.forEach((cDoc) => {
-                const c = cDoc.data();
-                if (c.paymentLink && formId && (c.paymentLink.includes(formId))) {
-                    matchedCourse = { id: cDoc.id, ...c };
+            if (tagCourseId) {
+                try {
+                    const { getDoc, doc } = await import('firebase/firestore');
+                    const courseSnap = await getDoc(doc(db, 'courses', tagCourseId));
+                    if (courseSnap.exists()) {
+                        matchedCourse = { id: courseSnap.id, ...courseSnap.data() };
+                    }
+                } catch (e: any) {
+                    console.error("Failed to load course via direct lookup:", e.message);
                 }
-            });
+            }
+            
+            if (!matchedCourse && formId) {
+                const coursesRef = collection(db, 'courses');
+                const coursesSnap = await getDocs(coursesRef);
+                coursesSnap.forEach((cDoc) => {
+                    const c = cDoc.data();
+                    if (c.paymentLink && formId && (c.paymentLink.includes(formId))) {
+                        matchedCourse = { id: cDoc.id, ...c };
+                    }
+                });
+            }
 
-            if (!matchedCourse) throw new Error(`Course not found for formId: ${formId}`);
+            if (!matchedCourse) throw new Error(`Course not found for formId/tag: ${formId || tagCourseId}`);
 
             // c) Find User
             const usersRef = collection(db, 'users');
-            let userId: string | null = null;
+            let userId: string | null = tagUserId;
 
-            if (userEmail) {
+            if (!userId && userEmail) {
                 const qE = query(usersRef, where('email', '==', userEmail));
                 const sE = await getDocs(qE);
                 if (!sE.empty) userId = sE.docs[0].id;
@@ -122,25 +139,53 @@ module.exports = async function handler(req: any, res: any) {
                 if (!sP.empty) userId = sP.docs[0].id;
             }
 
-            if (!userId) throw new Error(`User not found for ${userEmail || normPhone}`);
+            if (!userId) throw new Error(`User not found for ${userEmail || normPhone || tagUserId}`);
 
             // d) Commit Enrollment
             const enrolledAt = new Date();
             let expiresAt = null;
-            if (matchedCourse.validityDays) {
-                expiresAt = new Date(enrolledAt.getTime() + (matchedCourse.validityDays * 24 * 60 * 60 * 1000));
+            // Handle validityDays correctness (must be a number)
+            const vDays = Number(matchedCourse.validityDays);
+            if (!isNaN(vDays) && vDays > 0) {
+              expiresAt = new Date(enrolledAt.getTime() + (vDays * 24 * 60 * 60 * 1000));
+            } else {
+              // Default 1 year if not set or invalid
+              expiresAt = new Date(enrolledAt.getTime() + (365 * 24 * 60 * 60 * 1000));
             }
 
+            // Write to top-level `purchases`
             const pDoc = doc(collection(db, 'purchases'));
             transaction.set(pDoc, {
-                userId,
-                courseId: matchedCourse.id,
-                orderId: order_id,
-                amount: verifiedOrder.order_amount,
-                status: 'completed',
-                purchasedAt: serverTimestamp(),
-                expiresAt: expiresAt || null
+              userId,
+              courseId: matchedCourse.id,
+              orderId: order_id,
+              amount: verifiedOrder.order_amount,
+              status: 'completed',
+              purchasedAt: serverTimestamp(),
+              expiresAt: expiresAt || null
             });
+
+            // Write to `enrolled/{courseId}/users/{uid}` collection
+            const enrolledUserRef = doc(db, 'enrolled', matchedCourse.id, 'users', userId);
+            transaction.set(enrolledUserRef, {
+              userId,
+              courseId: matchedCourse.id,
+              orderId: order_id,
+              enrolledAt: serverTimestamp(),
+              expiresAt: expiresAt || null,
+              status: 'active'
+            }, { merge: true });
+
+            // Write to `purchases/{uid}/courses/{courseId}` (for Flutter compatibility)
+            const userPurchaseRef = doc(db, 'purchases', userId, 'courses', matchedCourse.id);
+            transaction.set(userPurchaseRef, {
+              courseId: matchedCourse.id,
+              courseName: matchedCourse.title,
+              purchasedAt: serverTimestamp(),
+              expiresAt: expiresAt || null,
+              orderId: order_id,
+              status: 'active'
+            }, { merge: true });
 
             console.log(`✅ Success Handler: Course ${matchedCourse.id} unlocked for User ${userId}`);
         });
