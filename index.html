@@ -465,6 +465,9 @@
     /* Navigation buttons removed */
 
     @media (max-width: 480px) {
+      .ajaz-hero {
+        margin-bottom: 60px; /* Push the 'What You'll Get' section down */
+      }
       .ajaz-controls {
         margin-top: 28px;
         gap: 14px;
@@ -636,7 +639,8 @@
     /* ═══════════════ INTERACTIVE SYLLABUS EXPANSION ═══════════════ */
     .syllabus-section {
       padding: 60px 20px;
-      background: var(--bg-secondary, #fafafa);
+      /* Transparent to blend with theme gradient background */
+      background: transparent;
     }
     .syllabus-grid {
       display: grid;
@@ -645,7 +649,7 @@
       margin-top: 40px;
     }
     .syllabus-card {
-      background: var(--card-bg, #ffffff);
+      background: var(--bg-card, #ffffff);
       border-radius: 20px;
       padding: 30px;
       position: relative;
@@ -704,7 +708,7 @@
     .syllabus-card h3 {
       font-size: 22px;
       margin-bottom: 10px;
-      color: var(--text-primary, #1a1a1a);
+      color: var(--text-primary, #1c1917);
     }
     .syllabus-card p {
       color: var(--text-secondary, #666);
@@ -758,13 +762,13 @@
     .syllabus-card.active .syllabus-list li:nth-child(6) { transition-delay: 0.35s; }
 
     [data-theme="black"] .syllabus-card {
-      background: #121212;
-      border-color: rgba(255,255,255,0.05);
+      background: var(--bg-card, #121212);
+      border-color: var(--border, rgba(255,255,255,0.05));
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     [data-theme="black"] .syllabus-list li {
       background: rgba(255,255,255,0.05);
-      color: #eee;
+      color: var(--text-primary, #ffffff);
     }
 
     /* Glow Effect for Active Card */

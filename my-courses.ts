@@ -179,27 +179,36 @@ class MyCoursesPage {
 
     const enrollmentsRes = await fetchUserEnrollments(userId);
     const enrolledIds = enrollmentsRes.success ? (enrollmentsRes.enrolledIds as string[]) : [];
-
-    if (enrolledIds.length === 0) {
-      this.showEmptyState('No Enrolled Courses','You have no active enrolled courses.', 'Browse Courses', './course-details.html');
-      return;
-    }
+    const revokedIds = enrollmentsRes.success ? (enrollmentsRes.revokedIds as string[]) : [];
 
     const coursesRes = await getCourses();
     const allCourses: Course[] = (coursesRes.success && 'courses' in coursesRes && coursesRes.courses) ? coursesRes.courses : [];
+    
+    if (enrolledIds.length === 0 && revokedIds.length === 0) {
+      this.showEmptyState('No Courses Found','You have no active enrolled courses at the moment.', 'Browse Courses', './course-details.html');
+      return;
+    }
+
     const hasFullCourse = enrolledIds.includes('full_course');
     const partIds = ['part1', 'part2', 'part3'];
 
+    // Filter enrolled courses
     const enrolledCourses = allCourses.filter(c => {
       if (!c.id || !enrolledIds.includes(c.id)) return false;
-      // If user has full_course, don't show individual parts (Part 1, 2, 3) 
-      // as separate cards because they are accessible inside the Full Course card.
       if (hasFullCourse && partIds.includes(c.id)) return false;
       return true;
     });
 
-    if (enrolledCourses.length === 0) {
-      this.showEmptyState('No Enrolled Courses','No enrolled courses found.', 'Browse Courses', './course-details.html');
+    // Filter revoked courses
+    const revokedCourses = allCourses.filter(c => {
+      if (!c.id || !revokedIds.includes(c.id)) return false;
+      // If it's both enrolled and revoked (unlikely but safe), prioritize enrolled
+      if (enrolledIds.includes(c.id)) return false;
+      return true;
+    });
+
+    if (enrolledCourses.length === 0 && revokedCourses.length === 0) {
+      this.showEmptyState('No Courses Found','No courses found in your account.', 'Browse Courses', './course-details.html');
       return;
     }
 
@@ -208,6 +217,8 @@ class MyCoursesPage {
 
     const cards: string[] = [];
     const views: string[] = [];
+
+    // Render Enrolled Courses
     for (const course of enrolledCourses) {
       const isFullCourse = course.id === 'full_course' || course.id === 'FullCourse' || course.title.toLowerCase().includes('full course');
       
@@ -228,6 +239,11 @@ class MyCoursesPage {
       }
     }
 
+    // Render Revoked Courses (If any)
+    for (const course of revokedCourses) {
+      cards.push(this.buildRevokedCard(course));
+    }
+
     this.coursesContainer.innerHTML = `
       <div class="mc-wrapper">
         <div class="mc-courses-list" id="mc-courses-list">
@@ -237,6 +253,27 @@ class MyCoursesPage {
       </div>
     `;
     this.attachListeners();
+  }
+
+  private buildRevokedCard(course: Course): string {
+    return `
+      <div class="mc-card revoked" style="filter: grayscale(0.5); border-color: #ef4444; opacity: 0.85;">
+        <div class="mc-face" style="background: linear-gradient(135deg, #1f2937 0%, #111827 100%);">
+          <span class="mc-enrolled" style="background: #ef4444; border-color: #fca5a5; color: #fff;">! Access Revoked</span>
+          <div>
+            <div class="mc-icon" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="mc-title" style="color: #f3f4f6;">${course.title}</div>
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-top: 10px;">
+            <p style="margin: 0; color: #fca5a5; font-size: 11px; font-weight: 500; line-height: 1.4; text-align: center;">
+              Admin has revoked access to this course. Please contact support if you believe this is a mistake.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   private async buildFullCourseCard(course: Course, allPDFs: PDF[]): Promise<{ card: string, views: string }> {
@@ -428,12 +465,34 @@ class MyCoursesPage {
   }
 
   private showEmptyState(title: string, message: string, btnText: string, btnLink: string): void {
+    const isSignIn = title.toLowerCase().includes('sign in');
     this.coursesContainer.innerHTML = `
-      <div class="mc-full info-card" style="text-align:center;margin:8px 0;">
-        <h2 style="font-size:21px;font-weight:700;margin-bottom:12px;">${title}</h2>
-        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;">${message}</p>
-        <a href="${btnLink}" class="btn-primary" style="display:inline-flex;padding:12px 24px;text-decoration:none;">${btnText}</a>
-      </div>`;
+      <div class="mc-empty-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 60px 20px; text-align:center; animation: fadeIn 0.5s ease-out;">
+        <div class="mc-empty-icon" style="width:100px; height:100px; border-radius:30px; background:var(--bg-card); display:flex; align-items:center; justify-content:center; margin-bottom:24px; box-shadow:0 15px 35px rgba(0,0,0,0.1); border:1px solid var(--border);">
+          ${isSignIn 
+            ? '<svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>'
+            : '<svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+          }
+        </div>
+        <h2 style="font-size:24px; font-weight:800; color:var(--text-primary); margin-bottom:12px; letter-spacing:-0.5px;">${title}</h2>
+        <p style="font-size:15px; color:var(--text-secondary); margin-bottom:32px; max-width:280px; line-height:1.6;">${message}</p>
+        <a href="${btnLink}" class="mc-cta-btn" style="display:inline-flex; align-items:center; gap:10px; background:var(--primary); color:#fff; padding:14px 32px; border-radius:16px; font-weight:700; text-decoration:none; box-shadow:0 10px 20px rgba(180, 83, 9, 0.2); transition: transform 0.2s;">
+          ${btnText}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        
+        ${isSignIn ? '' : `
+          <div style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border); width:100%;">
+            <p style="font-size:12px; color:var(--text-tertiary); font-weight:600; text-transform:uppercase; letter-spacing:1px;">Need Help?</p>
+            <a href="https://wa.me/917889396347" target="_blank" style="color:var(--primary); font-size:14px; font-weight:700; text-decoration:none; display:block; margin-top:8px;">Contact Support on WhatsApp</a>
+          </div>
+        `}
+      </div>
+      <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .mc-cta-btn:active { transform: scale(0.96); }
+      </style>
+    `;
   }
 }
 

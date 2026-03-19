@@ -578,6 +578,7 @@ export const createPurchase = async (purchase: Omit<Purchase, 'id' | 'purchasedA
 export const fetchUserEnrollments = async (userId: string) => {
   try {
     const enrolledIds: string[] = [];
+    const revokedIds: string[] = [];
     const now = new Date();
 
     // 1. Direct subcollection check (App's preferred method)
@@ -593,7 +594,11 @@ export const fetchUserEnrollments = async (userId: string) => {
           const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
           if (now > expiryDate) isValid = false;
         }
-        if (isValid) enrolledIds.push(doc.id);
+        if (isValid) {
+          enrolledIds.push(doc.id);
+        }
+      } else if (data.accessRevoked === true) {
+        revokedIds.push(doc.id);
       }
     });
 
@@ -618,9 +623,13 @@ export const fetchUserEnrollments = async (userId: string) => {
     });
 
     // Use Set to ensure uniqueness
-    return { success: true, enrolledIds: [...new Set(enrolledIds)] };
+    return { 
+      success: true, 
+      enrolledIds: [...new Set(enrolledIds)],
+      revokedIds: [...new Set(revokedIds)]
+    };
   } catch (error: any) {
-    return { success: false, error: error.message, enrolledIds: [] };
+    return { success: false, error: error.message, enrolledIds: [], revokedIds: [] };
   }
 };
 

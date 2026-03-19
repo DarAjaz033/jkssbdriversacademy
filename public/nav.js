@@ -37,6 +37,7 @@
     ig: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
     tw: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>',
     yt: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>',
+    tg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
     wa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>',
     mail: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
     shield: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
@@ -176,11 +177,10 @@
       '</div>' +
       '<p class="njf-tagline">Excellence in Exam Preparation</p>' +
       '<div class="njf-social">' +
-      '<a href="#" aria-label="Facebook">' + SVG.fb + '</a>' +
-      '<a href="#" aria-label="Instagram">' + SVG.ig + '</a>' +
-      '<a href="#" aria-label="Twitter">' + SVG.tw + '</a>' +
-      '<a href="#" aria-label="YouTube">' + SVG.yt + '</a>' +
-      '<a href="#" aria-label="WhatsApp">' + SVG.wa + '</a>' +
+      '<a href="https://www.facebook.com/profile.php?id=61588192991712" target="_blank" aria-label="Facebook">' + SVG.fb + '</a>' +
+      '<a href="https://t.me/+geryGyrT9gZiNzVl" target="_blank" aria-label="Telegram">' + SVG.tg + '</a>' +
+      '<a href="https://youtube.com/@jkssbdriversacademy" target="_blank" aria-label="YouTube">' + SVG.yt + '</a>' +
+      '<a href="https://chat.whatsapp.com/CaICTu1D78yJF6f2QnCI7l" target="_blank" aria-label="WhatsApp">' + SVG.wa + '</a>' +
       '</div>' +
       '<div class="njf-links">' +
       '<a href="./contact.html">' + SVG.mail + 'Contact Us</a>' +
