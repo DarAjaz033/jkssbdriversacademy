@@ -37,9 +37,15 @@ export default defineConfig({
         'admin-courses': 'admin-courses.html',
         'admin-pdfs': 'admin-pdfs.html',
         'admin-tests': 'admin-tests.html',
+        'admin-users': 'admin-users.html',
+        'admin-videos': 'admin-videos.html',
         'admin-purchases': 'admin-purchases.html',
         'delete-account': 'delete-account.html',
-        'cookie-policy': 'cookie-policy.html'
+        'cookie-policy': 'cookie-policy.html',
+        'more': 'more.html',
+        'leaderboard': 'leaderboard.html',
+        'ajazhero': 'ajazhero.html',
+        'payment-success': 'payment-success.html'
       }
     }
   }
