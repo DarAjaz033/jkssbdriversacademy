@@ -150,6 +150,12 @@ class AdminPDFsPage {
                 title="Select one or more PDFs to upload">
                 <i data-lucide="upload" width="12" height="12"></i> Upload PDFs
               </button>
+              ${['part1', 'part2', 'part3'].includes(course.id || '') ? `
+                <select class="pdf-category-select" id="pdf-cat-${course.id}" style="margin-left: 10px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 11px; background: var(--bg-app); cursor: pointer;">
+                  <option value="computerised">Computerised</option>
+                  <option value="handwritten">Handwritten</option>
+                </select>
+              ` : ''}
             </div>
 
             <div class="subfolder-content" id="pdf-list-${course.id}">
@@ -636,7 +642,9 @@ class AdminPDFsPage {
     onProgress: (pct: number) => void
   ): Promise<boolean> {
     const partId = (courseId === 'part1' || courseId === 'part2' || courseId === 'part3') ? courseId : undefined;
-    const result = await uploadPDFToCourse(file, courseId, partId, onProgress);
+    const catSelect = document.getElementById(`pdf-cat-${courseId}`) as HTMLSelectElement;
+    const category = catSelect?.value;
+    const result = await uploadPDFToCourse(file, courseId, partId, category, onProgress);
 
     if (result.success) {
       const pdfListEl = document.getElementById(`pdf-list-${courseId}`)!;

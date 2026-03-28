@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
+      if (savedTheme !== 'default') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+      const themeColors = {
+        'default': '#B45309',
+        'green': '#047857',
+        'blue': '#1E40AF',
+        'golden': '#AA8A2E',
+        'black': '#0A0A0A',
+        'frost': '#E0F2FE',
+        'minimal': '#000000'
+      };
+      const color = themeColors[savedTheme] || '#B45309';
+      document.write('<meta name="theme-color" content="' + color + '">');
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>More - JKSSB Drivers Academy</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=Black+Ops+One&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    :root {
+      --more-primary: #B45309;
+      --more-bg: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+    }
+
+    body {
+      background: var(--more-bg);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .more-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px 100px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- Profile Header --- */
+    .more-hero {
+      background: var(--gradient-primary);
+      border-radius: 24px;
+      padding: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 25px rgba(180, 83, 9, 0.25);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .more-hero::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .hero-avatar {
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .hero-info {
+      flex: 1;
+      z-index: 2;
+    }
+
+    .hero-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .hero-email {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      opacity: 0.9;
+      margin: 2px 0 0;
+    }
+
+    .btn-hero-action {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    .btn-hero-action:hover {
+      background: white;
+      color: var(--more-primary);
+    }
+
+    /* --- Sections --- */
+    .section-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 1.2px;
+      margin: 20px 0 10px 4px;
+      text-transform: uppercase;
+    }
+
+    .menu-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-item-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      transition: background 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .menu-item-row:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item-row:hover {
+      background: rgba(180, 83, 9, 0.03);
+    }
+
+    .item-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(180, 83, 9, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--more-primary);
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    .item-label {
+      flex: 1;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .live-badge {
+      background: #EF4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-right: 8px;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* --- Social Row --- */
+    .social-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .social-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .social-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .btn-share { background: rgba(180, 83, 9, 0.1); color: #B45309; border: 1px solid rgba(180, 83, 9, 0.1); }
+    .btn-yt { background: rgba(255, 0, 0, 0.1); color: #FF0000; border: 1px solid rgba(255, 0, 0, 0.1); }
+    .btn-wa { background: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.1); }
+    .btn-tg { background: rgba(38, 165, 228, 0.1); color: #26A5E4; border: 1px solid rgba(38, 165, 228, 0.1); }
+
+    .more-footer {
+      text-align: center;
+      margin-top: 32px;
+    }
+
+    .version-text {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin: 0;
+    }
+
+    .designed-by {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin: 4px 0 0;
+    }
+
+    /* --- Modal Styles --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      display: none;
+      align-items: center; /* Centered instead of flex-end */
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      width: 100%;
+      max-width: 450px;
+      border-radius: 24px; /* Fully rounded for center popup */
+      padding: 24px;
+      animation: popInModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+      position: relative;
+    }
+
+    @keyframes popInModal {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .close-modal {
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .switch-info {
+      flex: 1;
+    }
+
+    .switch-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .switch-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Simple switch checkbox */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute; content: "";
+      height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white; transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--more-primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+  </style>
+</head>
+<body>
+
+  <div class="more-container">
+    <!-- Header -->
+    <div class="more-hero" id="hero-section">
+      <div class="hero-avatar" id="hero-avatar">
+        <i data-lucide="person-standing"></i>
+      </div>
+      <div class="hero-info">
+        <h1 class="hero-name" id="user-name">Guest User</h1>
+        <p class="hero-email" id="user-email">Sign in to sync progress</p>
+      </div>
+      <a href="./login.html" class="btn-hero-action" id="hero-action-btn">Sign In</a>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="section-label">Resources</div>
+    <div class="menu-card">
+      <a href="./leaderboard.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="award"></i></div>
+        <div class="item-label">Leaderboard</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./demo-pdfs.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="file-text"></i></div>
+        <div class="item-label">Demo Material</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./gk-pdfs.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="book-open"></i></div>
+        <div class="item-label">GK PDFs</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./jkssb-updates.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="bell-ring"></i></div>
+        <div class="item-label">JKSSB Updates</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <div id="btn-live-classes" class="menu-item-row">
+        <div class="item-icon-box" style="background: rgba(163, 45, 45, 0.08); color: #A32D2D"><i data-lucide="video"></i></div>
+        <div class="item-label" style="color:#A32D2D">Live Classes</div>
+        <div id="live-indicator" style="display:none" class="live-badge">LIVE</div>
+        <i data-lucide="chevron-right" style="width:16px; color:#A32D2D"></i>
+      </div>
+    </div>
+
+    <!-- PREFERENCES -->
+    <div class="section-label">Preferences</div>
+    <div class="menu-card">
+      <div class="menu-item-row" id="btn-theme">
+        <div class="item-icon-box"><i data-lucide="palette"></i></div>
+        <div class="item-label">Appearance / Theme</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </div>
+      <div class="menu-item-row" id="btn-notifications">
+        <div class="item-icon-box"><i data-lucide="bell-plus"></i></div>
+        <div class="item-label">Notifications</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </div>
+    </div>
+
+    <!-- SUPPORT -->
+    <div class="section-label">Support</div>
+    <div class="menu-card">
+      <a href="./feedback.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="message-square"></i></div>
+        <div class="item-label">Send Feedback</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./contact.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="headphones"></i></div>
+        <div class="item-label">Contact Us</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+    </div>
+
+    <!-- LEGAL -->
+    <div class="section-label">Legal</div>
+    <div class="menu-card">
+      <a href="./privacy-policy.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="shield"></i></div>
+        <div class="item-label">Privacy Policy</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./terms-and-conditions.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="scroll-text"></i></div>
+        <div class="item-label">Terms & Conditions</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./refund-policy.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="receipt"></i></div>
+        <div class="item-label">Refund Policy</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./cookie-policy.html" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="cookie"></i></div>
+        <div class="item-label">Cookie Policy</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+      <a href="./index.html#faq" class="menu-item-row">
+        <div class="item-icon-box"><i data-lucide="help-circle"></i></div>
+        <div class="item-label">FAQ</div>
+        <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+      </a>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin-section" style="display:none">
+      <div class="section-label">Admin</div>
+      <div class="menu-card">
+        <div id="btn-manage-live" class="menu-item-row">
+          <div class="item-icon-box"><i data-lucide="graduation-cap"></i></div>
+          <div class="item-label">Manage Live Classes</div>
+          <i data-lucide="chevron-right" style="width:16px; opacity:0.3"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECT & SHARE -->
+    <div class="section-label">Connect & Share</div>
+    <div class="social-card">
+      <div id="btn-share-app" class="social-btn btn-share"><i data-lucide="share-2"></i></div>
+      <a href="https://youtube.com/@jkssbdriversacademy" target="_blank" class="social-btn btn-yt"><i data-lucide="youtube"></i></a>
+      <a href="https://chat.whatsapp.com/CaICTu1D78yJF6f2QnCI7l" target="_blank" class="social-btn btn-wa"><i data-lucide="message-circle"></i></a>
+      <a href="https://t.me/+geryGyrT9gZiNzVl" target="_blank" class="social-btn btn-tg"><i data-lucide="send"></i></a>
+    </div>
+
+    <div class="more-footer">
+      <p class="version-text">JKSSB Drivers Academy v1.0.1</p>
+      <p class="designed-by">Designed by Dar Ajaz</p>
+    </div>
+  </div>
+
+  <!-- Notification Modal -->
+  <div class="modal-overlay" id="notif-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Notification Settings</h2>
+        <div class="close-modal" id="close-notif-modal"><i data-lucide="x"></i></div>
+      </div>
+      
+      <div class="switch-row">
+        <div class="switch-info">
+          <div class="switch-title">Mute Notifications</div>
+          <div class="switch-subtitle">Silence all app notifications</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="mute-notif">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <div class="switch-title">Course Content Updates</div>
+          <div class="switch-subtitle">New PDFs, Videos, and Tests</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="content-notif" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <div class="switch-title">Study Reminders</div>
+          <div class="switch-subtitle">Mock tests & daily study slots</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="study-notif" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <div class="switch-title">Offers & News</div>
+          <div class="switch-subtitle">Discounts & Academy news</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="news-notif" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Classes Modal (Student) -->
+  <div id="live-classes-modal" class="modal-overlay">
+    <div class="modal-content live-details-card">
+      <div class="modal-header-row">
+        <button class="icon-btn close-modal-btn" id="close-live-modal">
+          <i data-lucide="x" width="24" height="24"></i>
+        </button>
+        <span class="modal-header-title">Live Class Details</span>
+        <div style="width: 40px;"></div>
+      </div>
+
+      <div class="live-scroll-content">
+        <!-- Header Section -->
+        <div class="live-header">
+          <div class="live-logo-container">
+            <i data-lucide="graduation-cap" class="live-logo-icon"></i>
+          </div>
+          <div class="live-title-group">
+            <h2 id="live-heading" class="live-heading">JKSSB Fresh Live Batch Started</h2>
+            <p id="live-subheading" class="live-subheading">Batch 2026 - Full Syllabus Coverage</p>
+          </div>
+        </div>
+
+        <!-- Pricing Card -->
+        <div class="live-pricing-card">
+          <div class="price-info">
+            <span class="price-label">SPECIAL OFFER PRICE</span>
+            <div class="price-row">
+              <span id="live-price" class="main-price">₹299</span>
+              <span id="live-original-price" class="old-price">₹599</span>
+            </div>
+          </div>
+          <div class="discount-badge">50% OFF</div>
+        </div>
+
+        <!-- Highlights -->
+        <div class="live-section-label">WHAT YOU GET</div>
+        <div id="live-highlights" class="live-highlights-list">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="live-divider"></div>
+
+        <!-- Steps -->
+        <div class="live-section-label">STEPS TO ACCESS LIVE CLASSES</div>
+        <div id="live-steps" class="live-steps-list">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Final Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+          <button id="enroll-now-btn" class="shimmer-btn enroll-btn" style="width: 100%; border-radius: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 14px; font-size: 16px; font-weight: bold;">
+            <i data-lucide="external-link"></i>
+            <span>Open in App (Direct)</span>
+          </button>
+          
+          <a href="https://play.google.com/store/apps/details?id=com.educate.theteachingapp" target="_blank" style="width: 100%; border-radius: 12px; background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 14px; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none;">
+            <i data-lucide="smartphone"></i>
+            <span>Get on Android</span>
+          </a>
+          
+          <a href="https://play.google.com/store/apps/details?id=com.educate.learningapp" target="_blank" style="width: 100%; border-radius: 12px; background: transparent; color: var(--text-primary); border: 2px solid #ccc; padding: 14px; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none;">
+            <i data-lucide="apple"></i>
+            <span>Get on iOS</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Live Modal (Admin Only) -->
+  <div id="manage-live-modal" class="modal-overlay">
+    <div class="modal-content admin-modal-card">
+      <div class="modal-header-row">
+        <button class="icon-btn close-modal-btn" id="close-manage-modal">
+          <i data-lucide="x" width="24" height="24"></i>
+        </button>
+        <span class="modal-header-title">Manage Live Classes</span>
+        <div style="width: 40px;"></div>
+      </div>
+
+      <div class="admin-scroll-content">
+        <!-- Live Toggle Card -->
+        <div class="admin-control-card">
+          <div class="control-text">
+            <h3>Live Session</h3>
+            <p id="admin-live-status">⚪ Offline</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="admin-live-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="admin-config-card">
+          <div class="config-header">
+            <h3>Class Configuration</h3>
+            <button id="edit-config-btn" class="text-btn" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+              <i data-lucide="edit-3" width="14" height="14"></i>
+              <span>Edit</span>
+            </button>
+          </div>
+
+          <div id="config-view" class="config-fields-group">
+            <div class="config-row">
+              <i data-lucide="key" class="field-icon"></i>
+              <div class="field-content">
+                <label>Classroom ID</label>
+                <p id="view-room-id">9241953371</p>
+              </div>
+            </div>
+            <div class="config-row">
+              <i data-lucide="type" class="field-icon"></i>
+              <div class="field-content">
+                <label>Display Title</label>
+                <p id="view-live-title">🔴 Live Class</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="config-edit" class="config-edit-group hidden">
+            <div class="input-group">
+              <label>EducateApp Room ID *</label>
+              <input type="text" id="edit-room-id" placeholder="e.g. 9241953371">
+            </div>
+            <div class="input-group">
+              <label>Display Title (shown to users)</label>
+              <input type="text" id="edit-live-title" placeholder="e.g. 🔴 LIVE: Road Safety Laws">
+            </div>
+            <div class="config-edit-actions">
+              <button id="cancel-config-btn" class="outline-btn" style="background:none; border:1px solid var(--border); border-radius:10px; padding:12px; font-weight:700;">Cancel</button>
+              <button id="save-config-btn" class="primary-btn" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:12px; font-weight:700;">Save Configuration</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start/Stop Button -->
+        <button id="admin-toggle-btn" class="admin-action-btn start-session">
+          <i data-lucide="play-circle" width="20" height="20"></i>
+          <span>START LIVE & NOTIFY USERS</span>
+        </button>
+
+        <p class="admin-helper-text">
+          Starting a live session will send a push notification to ALL users and show the "Join Live" banner on the Home Screen.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./more.ts"></script>
+  <script src="./nav.js" defer></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

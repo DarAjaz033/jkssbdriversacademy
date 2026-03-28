@@ -1,4 +1,4 @@
-// JKSSB Drivers Academy - App Logic
+// Drivers Academy - App Logic
 // Modern TypeScript Implementation
 
 import {
@@ -400,13 +400,13 @@ class App {
     if (!titleElement) return;
 
     const titles: Record<string, string> = {
-      home: 'JKSSB Drivers Academy',
+      home: 'Drivers Academy',
       courses: 'Courses',
       learning: 'My Learning',
       more: 'More'
     };
 
-    titleElement.textContent = titles[pageName] || 'JKSSB Drivers Academy';
+    titleElement.textContent = titles[pageName] || 'Drivers Academy';
   }
 
   private setupPageTitle(): void {

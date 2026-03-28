@@ -1,4 +1,4 @@
-import { db, storage } from './firebase-config';
+import { db, storage, functions } from './firebase-config';
 import {
   collection,
   addDoc,
@@ -12,7 +12,9 @@ import {
   where,
   orderBy,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  collectionGroup,
+  FieldValue
 } from 'firebase/firestore';
 import {
   ref,
@@ -20,6 +22,7 @@ import {
   getDownloadURL,
   deleteObject
 } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import { PDFDocument, rgb, degrees } from 'pdf-lib';
 
 const COURSES_CACHE_KEY = 'jkssb_courses_cache';
@@ -51,9 +54,10 @@ export interface Course {
   thumbTopLabel?: string;
   thumbMainHeading?: string;
   thumbSubHeading?: string;
-  thumbPartTags?: string;
+  thumbPartTags?: string | string[];
   thumbBottomCaption?: string;
   thumbnailUrl?: string;
+  descriptionPoints?: string[];
   emoji?: string;
   pdfIds: string[];
   practiceTestIds: string[];
@@ -69,6 +73,7 @@ export interface PDF {
   uploadedAt: any;
   courseId?: string;
   partId?: string; // e.g. 'part1', 'part2', 'part3'
+  category?: string; // e.g. 'computerised', 'handwritten'
 }
 
 export interface PracticeTest {
@@ -302,7 +307,7 @@ const addWatermarkToPDF = async (file: File): Promise<File> => {
     for (const page of pages) {
       const { width, height } = page.getSize();
       // Calculate text width approximately and center it
-      page.drawText('JKSSB Drivers Academy', {
+      page.drawText('Drivers Academy', {
         x: width / 2 - 200,
         y: height / 2 - 50,
         size: 40,
@@ -396,6 +401,7 @@ export const uploadPDFToCourse = (
   originalFile: File,
   courseId: string,
   partId?: string,
+  category?: string,
   onProgress?: (percent: number) => void
 ): Promise<{ success: true; id: string; url: string } | { success: false; error: string }> => {
   return new Promise(async (resolve) => {
@@ -421,6 +427,7 @@ export const uploadPDFToCourse = (
             size: file.size,
             courseId,
             partId,
+            category,
             uploadedAt: serverTimestamp()
           });
 
@@ -627,6 +634,7 @@ export const fetchUserEnrollments = async (userId: string) => {
   try {
     const enrolledIds: string[] = [];
     const revokedIds: string[] = [];
+    const expiries: Record<string, any> = {};
     const now = new Date();
 
     // 1. Direct subcollection check (App's preferred method)
@@ -639,6 +647,7 @@ export const fetchUserEnrollments = async (userId: string) => {
         // Expiration check
         let isValid = true;
         if (data.expiresAt) {
+          expiries[doc.id] = data.expiresAt;
           const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
           if (now > expiryDate) isValid = false;
         }
@@ -663,6 +672,7 @@ export const fetchUserEnrollments = async (userId: string) => {
       if (data.courseId && !enrolledIds.includes(data.courseId)) {
         let isValid = true;
         if (data.expiresAt) {
+          expiries[data.courseId] = data.expiresAt;
           const expiryDate = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
           if (now > expiryDate) isValid = false;
         }
@@ -674,10 +684,11 @@ export const fetchUserEnrollments = async (userId: string) => {
     return { 
       success: true, 
       enrolledIds: [...new Set(enrolledIds)],
-      revokedIds: [...new Set(revokedIds)]
+      revokedIds: [...new Set(revokedIds)],
+      expiries
     };
   } catch (error: any) {
-    return { success: false, error: error.message, enrolledIds: [], revokedIds: [] };
+    return { success: false, error: error.message, enrolledIds: [], revokedIds: [], expiries: {} };
   }
 };
 
@@ -784,4 +795,281 @@ export const getUserCoursesWithDetails = async (userId: string) => {
   } catch (error: any) {
     return { success: false, error: error.message };
   }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED ADMIN: Cloud Function Wrappers
+// Mirrors Flutter app's adminEnrollUser / adminExtendExpiry /
+// adminDeleteUser / sendManualNotification Cloud Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Enroll an existing user (by UID) into a course. Calls adminEnrollUser CF. */
+export const adminEnrollUserByUid = async (
+  targetUid: string,
+  courseId: string,
+  validityDays: number,
+  note = 'Admin granted access'
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const fn = httpsCallable(functions, 'adminEnrollUser');
+    await fn({ targetUid, courseId, validityDays, note });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Grant access by phone or email.
+ * - User exists in Firestore → call adminEnrollUser directly.
+ * - User not found → add to adminGrantedAccess as pending.
+ */
+export const adminGrantAccess = async (
+  identifier: string,
+  courseId: string,
+  courseName: string,
+  expiryDate: Date
+): Promise<{ success: boolean; pending?: boolean; displayName?: string; error?: string }> => {
+  try {
+    const isEmail = identifier.includes('@');
+    let phone = '';
+    let email = '';
+
+    if (isEmail) {
+      email = identifier.toLowerCase();
+    } else {
+      const digits = identifier.replace(/\D/g, '');
+      if (digits.length === 10) phone = `+91${digits}`;
+      else if (digits.length > 10 && digits.startsWith('91')) phone = `+${digits}`;
+      else phone = identifier;
+    }
+
+    const validityDays = Math.max(1, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000));
+
+    let snap: any = null;
+    if (phone) {
+      snap = await getDocs(query(collection(db, 'users'), where('phoneNumber', '==', phone)));
+      if (snap.empty && phone.startsWith('+91')) {
+        snap = await getDocs(query(collection(db, 'users'), where('phoneNumber', '==', phone.slice(3))));
+      }
+    } else if (email) {
+      snap = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+    }
+
+    if (snap && !snap.empty) {
+      const targetUid = snap.docs[0].id;
+      const displayName = (snap.docs[0].data() as any)?.name || identifier;
+      await adminEnrollUserByUid(targetUid, courseId, validityDays);
+      return { success: true, pending: false, displayName };
+    } else {
+      await addDoc(collection(db, 'adminGrantedAccess'), {
+        phone,
+        email,
+        courseId,
+        courseName,
+        expiryDate: Timestamp.fromDate(expiryDate),
+        createdAt: serverTimestamp(),
+        status: 'pending',
+      });
+      return { success: true, pending: true, displayName: identifier };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Extend expiry for a user's course. Calls adminExtendExpiry CF. */
+export const adminExtendExpiry = async (
+  targetUid: string,
+  courseId: string,
+  additionalDays: number
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const fn = httpsCallable(functions, 'adminExtendExpiry');
+    await fn({ targetUid, courseId, additionalDays });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Revoke a user's access to a course. Writes to purchases/{uid}/courses/{courseId}. */
+export const adminRevokeAccess = async (
+  targetUid: string,
+  courseId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await updateDoc(doc(db, 'purchases', targetUid, 'courses', courseId), {
+      isPurchased: false,
+      isExpired: true,
+      accessRevoked: true,
+      revokedAt: serverTimestamp(),
+      revokedBy: 'admin',
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Permanently delete a user from Auth + Firestore. Calls adminDeleteUser CF. */
+export const adminDeleteUserAccount = async (
+  targetUid: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const fn = httpsCallable(functions, 'adminDeleteUser');
+    await fn({ targetUid });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Send a push notification to a user by email. Calls sendManualNotification CF. */
+export const sendNotificationToUser = async (
+  userEmail: string,
+  title: string,
+  body: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const fn = httpsCallable(functions, 'sendManualNotification');
+    await fn({ targetType: 'user', title, body, data: { userEmail } });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED ADMIN: User Access Query Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Get all enrolled course docs for a specific user. */
+export const getUserAccessDetails = async (uid: string) => {
+  try {
+    const snap = await getDocs(collection(db, 'purchases', uid, 'courses'));
+    const courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { success: true, courses };
+  } catch (error: any) {
+    return { success: false, courses: [], error: error.message };
+  }
+};
+
+/** Search users by name, phone or email. */
+export const searchUsers = async (q: string) => {
+  try {
+    const byPhone = await getDocs(query(collection(db, 'users'), where('phoneNumber', '==', q)));
+    const byEmail = await getDocs(query(collection(db, 'users'), where('email', '==', q)));
+    const byName  = await getDocs(query(collection(db, 'users'),
+      where('name', '>=', q), where('name', '<=', q + '\uf8ff')));
+
+    const seen = new Set<string>();
+    const users: any[] = [];
+    for (const docSnap of [...byPhone.docs, ...byEmail.docs, ...byName.docs]) {
+      if (!seen.has(docSnap.id)) {
+        seen.add(docSnap.id);
+        users.push({ uid: docSnap.id, ...docSnap.data() });
+      }
+    }
+    return { success: true, users };
+  } catch (error: any) {
+    return { success: false, users: [], error: error.message };
+  }
+};
+
+/** Get all active enrollments for a course using collectionGroup query. */
+export const getUsersEnrolledInCourse = async (courseId: string) => {
+  try {
+    const snap = await getDocs(query(
+      collectionGroup(db, 'courses'),
+      where('courseId', '==', courseId),
+      where('isPurchased', '==', true)
+    ));
+    const results = snap.docs.map(d => ({
+      uid: d.ref.parent.parent!.id,
+      docId: d.id,
+      ...d.data()
+    }));
+    return { success: true, results };
+  } catch (error: any) {
+    return { success: false, results: [], error: error.message };
+  }
+};
+
+/** Get all pending grants from adminGrantedAccess. */
+export const getPendingGrants = async () => {
+  try {
+    const snap = await getDocs(query(collection(db, 'adminGrantedAccess'), orderBy('createdAt', 'desc')));
+    return { success: true, grants: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+  } catch (error: any) {
+    return { success: false, grants: [], error: error.message };
+  }
+};
+
+/** Cancel a pending grant from adminGrantedAccess. */
+export const cancelPendingGrant = async (grantId: string) => {
+  try {
+    await deleteDoc(doc(db, 'adminGrantedAccess', grantId));
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Get a user profile from users collection. */
+export const getUserProfile = async (uid: string) => {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists()) return { success: true, user: { uid, ...snap.data() } };
+    return { success: false, error: 'User not found' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/** Get all active admin-granted accesses using collectionGroup. */
+export const getActiveAdminGrants = async () => {
+  try {
+    const snap = await getDocs(query(collectionGroup(db, 'courses'), where('adminGranted', '==', true)));
+    return {
+      success: true,
+      results: snap.docs.map(d => ({ uid: d.ref.parent.parent!.id, courseId: d.id, ...d.data() }))
+    };
+  } catch (error: any) {
+    return { success: false, results: [], error: error.message };
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED ADMIN: Course Thumbnail Upload (matches Flutter app Storage path)
+// Path: courses/thumbnails/{courseId}.{ext}
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const uploadCourseThumbnail = (
+  courseId: string,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<{ success: boolean; url?: string; error?: string }> => {
+  return new Promise((resolve) => {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const storageRef = ref(storage, `courses/thumbnails/${courseId}.${ext}`);
+    const task = uploadBytesResumable(storageRef, file);
+
+    task.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        onProgress?.(pct);
+      },
+      (error) => resolve({ success: false, error: error.message }),
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          resolve({ success: true, url });
+        } catch (err: any) {
+          resolve({ success: false, error: err.message });
+        }
+      }
+    );
+  });
 };

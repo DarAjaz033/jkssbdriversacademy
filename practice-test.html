@@ -42,7 +42,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <title>Practice Test | JKSSB Drivers Academy</title>
+  <title>Practice Test | Drivers Academy</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./styles.css">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -53,11 +53,12 @@
     }
 
     .test-header {
-      background: white;
+      background: var(--bg-card);
       padding: var(--spacing-lg);
       border-radius: var(--radius-lg);
       margin-bottom: var(--spacing-md);
       box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
 
     .test-title {
@@ -75,11 +76,12 @@
     }
 
     .question-card {
-      background: white;
+      background: var(--bg-card);
       padding: var(--spacing-lg);
       border-radius: var(--radius-lg);
       margin-bottom: var(--spacing-md);
       box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
 
     .question-number {
@@ -116,22 +118,22 @@
 
     .option-item:hover {
       border-color: var(--primary);
-      background: #FEF3C7;
+      background: var(--status-warning-bg);
     }
 
     .option-item.selected {
       border-color: var(--primary);
-      background: #FEF3C7;
+      background: var(--status-warning-bg);
     }
 
     .option-item.correct {
-      border-color: #16A34A;
-      background: #DCFCE7;
+      border-color: var(--status-success);
+      background: var(--status-success-bg);
     }
 
     .option-item.wrong {
-      border-color: #DC2626;
-      background: #FEE2E2;
+      border-color: var(--status-danger);
+      background: var(--status-danger-bg);
     }
 
     .option-radio {
@@ -184,11 +186,12 @@
     }
 
     .results-card {
-      background: white;
+      background: var(--bg-card);
       padding: var(--spacing-xl);
       border-radius: var(--radius-lg);
       text-align: center;
       box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
 
     .results-score {
@@ -207,7 +210,8 @@
 
     .stat-item {
       padding: var(--spacing-md);
-      background: #F9FAFB;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
       border-radius: var(--radius-md);
     }
 
@@ -224,12 +228,13 @@
     /* === NEW TEST OVERHAUL UI === */
     /* Lobby Layout */
     .lobby-card {
-      background: white;
+      background: var(--bg-card);
       padding: var(--spacing-xl);
       border-radius: var(--radius-lg);
       margin: var(--spacing-lg) auto;
       box-shadow: var(--shadow-sm);
       max-width: 600px;
+      border: 1px solid var(--border);
     }
 
     .lobby-title {
@@ -241,8 +246,8 @@
     }
 
     .lobby-instructions {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
       border-radius: var(--radius-md);
       padding: var(--spacing-lg);
       margin-bottom: var(--spacing-xl);
@@ -277,9 +282,9 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: white;
+      background: var(--bg-card);
       padding: 12px var(--spacing-lg);
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -292,14 +297,14 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #FEF2F2;
-      color: #DC2626;
+      background: var(--status-danger-bg);
+      color: var(--status-danger);
       padding: 6px 14px;
       border-radius: 99px;
       font-weight: 700;
       font-size: 16px;
       letter-spacing: 0.5px;
-      border: 1px solid #FECACA;
+      border: 1px solid var(--status-danger);
     }
 
     .dash-time-warn {
@@ -342,7 +347,7 @@
     }
 
     .modal-content {
-      background: white;
+      background: var(--bg-card);
       padding: var(--spacing-xl);
       border-radius: var(--radius-lg);
       max-width: 400px;
@@ -351,6 +356,7 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       transform: translateY(20px);
       transition: transform 0.3s;
+      border: 1px solid var(--border);
     }
 
     .modal-overlay.active .modal-content {

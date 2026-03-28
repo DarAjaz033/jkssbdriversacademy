@@ -15,7 +15,7 @@
 
   /* ── Active tab detection ─────────────────────────────────────── */
   var isMore = ['privacy-policy.html', 'terms-and-conditions.html', 'refund-policy.html',
-    'contact.html', 'feedback.html', 'copyright-warning.html',
+    'cookie-policy.html', 'contact.html', 'feedback.html', 'copyright-warning.html',
     'jkssb-updates.html', 'profile.html'].indexOf(page) !== -1;
   var isLearning = ['mock-tests.html', 'practice-test.html', 'gk-pdfs.html',
     'demo-pdfs.html'].indexOf(page) !== -1;
@@ -188,6 +188,8 @@
       '<a href="./contact.html">' + SVG.mail + 'Contact Us</a>' +
       '<span class="njf-sep">|</span>' +
       '<a href="./privacy-policy.html">' + SVG.shield + 'Privacy Policy</a>' +
+      '<span class="njf-sep">|</span>' +
+      '<a href="./cookie-policy.html">' + SVG.shield + 'Cookie Policy</a>' +
       '<span class="njf-sep">|</span>' +
       '<a href="./terms-and-conditions.html">' + SVG.file + 'Terms &amp; Conditions</a>' +
       '<span class="njf-sep">|</span>' +

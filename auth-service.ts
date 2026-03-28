@@ -12,8 +12,9 @@ import {
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail as fetchSignInMethods
 } from 'firebase/auth';
-import { auth, db } from './firebase-config';
-import { doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db, functions } from './firebase-config';
+import { doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, query, where, getDocs, FieldValue } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let confirmationResult: ConfirmationResult | null = null;
@@ -247,6 +248,14 @@ export const clearSessionToken = async (uid: string) => {
   } catch { }
 };
 
+// ── Admin Whitelist ──────────────────────────────────────────────────────
+export const ADMIN_WHITELIST = [
+  'darajaz033@gmail.com',
+  'jkssbdriversacademy@gmail.com',
+  'info@jkssbdriversacademy.co.in',
+  'infojkssbdriversacademy@gmail.com'
+];
+
 // ── Premium User Check ──────────────────────────────────────────────────────
 export const isPremiumUser = async (userId: string): Promise<boolean> => {
   try {
@@ -310,6 +319,103 @@ export const isPremiumUser = async (userId: string): Promise<boolean> => {
   } catch (error) {
     console.error('Error checking premium status:', error);
     return false;
+  }
+};
+
+// ── Profile Logic (1:1 with app) ──────────────────────────────────────────
+
+/**
+ * Check if the user's profile is complete (has both email and phone)
+ * Mirrors the logic in mobile app's AuthService.isProfileComplete
+ */
+export const isProfileComplete = async (uid: string): Promise<boolean> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return false;
+
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (!userDoc.exists()) return false;
+
+    const data = userDoc.data();
+    let email = data.email as string | undefined;
+    let phone = data.phoneNumber as string | undefined;
+
+    let updated = false;
+    if (!email && user.email) {
+      email = user.email;
+      updated = true;
+    }
+    if (!phone && user.phoneNumber) {
+      phone = user.phoneNumber;
+      updated = true;
+    }
+
+    if (updated) {
+      await saveUserProfile(uid, { email, phoneNumber: phone });
+    }
+
+    return !!(email && phone);
+  } catch (error) {
+    console.error('Error checking profile completion:', error);
+    return false;
+  }
+};
+
+/**
+ * Get current user data from Firestore
+ */
+export const getUserData = async (uid: string): Promise<any | null> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    return userDoc.exists() ? userDoc.data() : null;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    return null;
+  }
+};
+
+/**
+ * Update user profile in Firestore and sync with mobile identities
+ * Mirrors the logic in mobile app's AuthService.saveUserProfile
+ */
+export const saveUserProfile = async (uid: string, data: { name?: string; email?: string; phoneNumber?: string }) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const existingSnap = await getDoc(userRef);
+    const existingData = existingSnap.data() || {};
+
+    const updateData: any = {
+      updatedAt: serverTimestamp(),
+    };
+
+    // Only update if current value is missing (matching app's server-side uniqueness rules)
+    if (data.email && !existingData.email) {
+      updateData.email = data.email;
+    }
+    if (data.phoneNumber && !existingData.phoneNumber) {
+      updateData.phoneNumber = data.phoneNumber;
+    }
+    if (data.name) {
+      updateData.displayName = data.name;
+      updateData.name = data.name;
+    }
+
+    // Call server-side linking function (Strict server-side uniqueness)
+    try {
+      const linkFn = httpsCallable(functions, 'linkUserIdentifiers');
+      await linkFn({
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        name: data.name
+      });
+    } catch (e) {
+      console.warn('Silent failure in linkUserIdentifiers (falling back to simple update):', e);
+      await setDoc(userRef, updateData, { merge: true });
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 };
 

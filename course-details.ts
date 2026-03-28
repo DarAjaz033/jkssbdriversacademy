@@ -2,7 +2,7 @@ import { db } from './firebase-config';
 import { escapeHtml } from './utils/escape-html';
 import { doc, getDoc } from 'firebase/firestore';
 import { getCurrentUser } from './auth-service';
-import { openDirectPaymentModal } from './payment-service';
+import { createSecureOrder, launchCheckout } from './payment-service';
 import { Course as AdminCourse, hasUserPurchasedCourse } from './admin-service';
 
 interface Course {
@@ -349,7 +349,7 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
                   class="${this.isEnrolled ? 'btn-secondary' : 'btn-primary'}"
                   style="width: 100%; margin-top: var(--spacing-md); padding: 16px; font-size: 16px; font-weight: 600; cursor: ${this.isEnrolled ? 'default' : 'pointer'};"
                 >
-                  <span>${this.isEnrolled ? 'Already Enrolled' : 'Enroll Now'}</span>
+                  <span>${this.isEnrolled ? 'Already Enrolled' : 'Buy Now'}</span>
                   <i data-lucide="${this.isEnrolled ? 'check' : 'arrow-right'}" style="width: 20px; height: 20px;"></i>
                 </button>
       </div>
@@ -386,59 +386,133 @@ style = "display: flex; align-items: center; gap: 8px; margin-bottom: var(--spac
 
     const enrollBtn = document.getElementById('course-enroll-btn');
     if (enrollBtn) {
-      enrollBtn.addEventListener('click', () => {
-        if (this.isEnrolled) {
-          window.location.href = './my-courses.html';
-          return;
-        }
-        const user = getCurrentUser();
-        if (!user) {
-          window.location.href = `./login.html?redirect=${encodeURIComponent(`course-details.html?id=${course.id}&buy=true`)}`;
-          return;
-        }
-
-        let pLink = course.paymentLink;
-        const t = course.title.toLowerCase();
-        const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
-
-        if (!pLink || isOldPapers) {
-          if (isOldPapers) {
-            pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
-          }
-        }
-
-        if (pLink) {
-          openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
-        } else {
-          // If no direct payment link, stay on details page or go home
-          window.location.href = `./index.html?buyCourse=${course.id}`;
-        }
-      });
-    }
-
-    // Auto-open logic if returning from login
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('buy') === 'true' && getCurrentUser()) {
-      const user = getCurrentUser()!;
-      let pLink = course.paymentLink;
-      const t = course.title.toLowerCase();
-      const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
-
-      if (!pLink || isOldPapers) {
-        if (isOldPapers) {
-          pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
-        }
-      }
-
-      if (pLink) {
-        openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
-      } else {
-        window.location.href = `./course-purchase.html?id=${course.id}`;
-      }
-      window.history.replaceState({}, document.title, window.location.pathname + `?id=${course.id}`);
+      enrollBtn.addEventListener('click', () => this.handleBuyClick(enrollBtn, course));
     }
 
     (window as any).lucide?.createIcons();
+  }
+
+  private async handleBuyClick(enrollBtn: HTMLElement, course: Course) {
+    if (this.isEnrolled) {
+      window.location.href = './my-courses.html';
+      return;
+    }
+    const user = getCurrentUser();
+    if (!user) {
+      window.location.href = `./login.html?redirect=${encodeURIComponent(`course-details.html?id=${course.id}`)}`;
+      return;
+    }
+
+    enrollBtn.innerHTML = '<span style="display:flex;align-items:center;gap:8px;"><i data-lucide="loader-2" class="spin" style="width:20px;height:20px;"></i> Processing...</span>';
+    if ((window as any).lucide) (window as any).lucide.createIcons({ root: enrollBtn });
+
+    try {
+      const { getUserData } = await import('./auth-service');
+      const userData = await getUserData(user.uid);
+      
+      const email = userData?.email || user.email;
+      const phone = userData?.phoneNumber || user.phoneNumber;
+      const name = userData?.name || userData?.displayName;
+
+      if (!email || !phone || !name) {
+        let missing = [];
+        if (!name) missing.push('name');
+        if (!email) missing.push('email');
+        if (!phone) missing.push('phone number');
+        
+        this.showProfileIncompleteModal(missing.join(', '));
+        this.resetEnrollBtn(enrollBtn);
+        return;
+      }
+
+      const orderResult = await createSecureOrder(course as any, phone);
+      if (orderResult.error) {
+        alert(`Payment Failed: ${orderResult.error}`);
+        this.resetEnrollBtn(enrollBtn);
+        return;
+      }
+
+      if (orderResult.paymentSessionId) {
+        const checkoutResult = await launchCheckout(orderResult.paymentSessionId);
+        
+        if (checkoutResult && checkoutResult.error) {
+          const errMsg = checkoutResult.error.message || 'Payment cancelled or failed.';
+          alert(`Payment: ${errMsg}`);
+          this.resetEnrollBtn(enrollBtn);
+          return;
+        }
+
+        // Show verifying state
+        enrollBtn.innerHTML = '<span style="display:flex;align-items:center;gap:8px;"><i data-lucide="loader-2" class="spin" style="width:20px;height:20px;"></i> Verifying...</span>';
+        if ((window as any).lucide) (window as any).lucide.createIcons({ root: enrollBtn });
+
+        const { verifyPaymentStatus } = await import('./payment-service');
+        const verifyResult = await verifyPaymentStatus(orderResult.orderId as string);
+
+        if (verifyResult.success) {
+          this.isEnrolled = true;
+          alert('🎉 Course Unlocked! Enjoy your course.');
+          window.location.reload();
+        } else {
+          alert('Payment not verified. If money was deducted, please check your dashboard shortly or contact support.');
+          this.resetEnrollBtn(enrollBtn);
+        }
+      } else {
+        alert('Failed to initialize payment session.');
+        this.resetEnrollBtn(enrollBtn);
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Error: ' + e.message);
+      this.resetEnrollBtn(enrollBtn);
+    }
+  }
+
+  private resetEnrollBtn(btn: HTMLElement) {
+    btn.innerHTML = `<span>${this.isEnrolled ? 'Already Enrolled' : 'Buy Now'}</span><i data-lucide="${this.isEnrolled ? 'check' : 'arrow-right'}" style="width: 20px; height: 20px;"></i>`;
+    if ((window as any).lucide) (window as any).lucide.createIcons({ root: btn });
+  }
+
+  private showProfileIncompleteModal(missingFields: string): void {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+    overlay.style.backdropFilter = 'blur(5px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999';
+
+    overlay.innerHTML = `
+      <div style="background: var(--bg-app); border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="font-size: 19px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Complete your profile to continue</h3>
+        <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5;">
+          Please add your ${missingFields} to purchase. Once verified, you can proceed with the transaction.
+        </p>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button id="closeProfileModal" style="background: transparent; border: none; font-size: 15px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; padding: 8px 16px; transition: color 0.2s;">
+            Cancel
+          </button>
+          <button id="goToProfileBtn" style="background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; padding: 10px 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(180, 83, 9, 0.3);">
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('closeProfileModal')?.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+    
+    document.getElementById('goToProfileBtn')?.addEventListener('click', () => {
+      window.location.href = './profile.html';
+    });
   }
 
   private getFeaturesList(category: string): string[] {

@@ -1,7 +1,7 @@
 {
-  "name": "jkssb-drivers-academy",
+  "name": "drivers-academy",
   "version": "1.0.0",
-  "description": "JKSSB Drivers Academy - Modern exam preparation platform",
+  "description": "Drivers Academy - Modern exam preparation platform",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

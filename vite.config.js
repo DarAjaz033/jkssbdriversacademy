@@ -14,7 +14,6 @@ export default defineConfig({
         main: 'index.html',
         'profile': 'profile.html',
         'course-details': 'course-details.html',
-        'course-purchase': 'course-purchase.html',
         'my-courses': 'my-courses.html',
         'mock-tests': 'mock-tests.html',
         'practice-test': 'practice-test.html',
@@ -38,7 +37,9 @@ export default defineConfig({
         'admin-courses': 'admin-courses.html',
         'admin-pdfs': 'admin-pdfs.html',
         'admin-tests': 'admin-tests.html',
-        'admin-purchases': 'admin-purchases.html'
+        'admin-purchases': 'admin-purchases.html',
+        'delete-account': 'delete-account.html',
+        'cookie-policy': 'cookie-policy.html'
       }
     }
   }

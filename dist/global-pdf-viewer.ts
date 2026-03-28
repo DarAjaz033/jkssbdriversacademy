@@ -739,7 +739,7 @@ async function renderPdfToCanvasList(pdfDoc: any, container: HTMLElement, initia
             const firstPage = await pdfDoc.getPage(1);
             const textContent = await firstPage.getTextContent();
             const textString = textContent.items.map((item: any) => item.str).join(' ');
-            if (textString.includes('JKSSB Drivers Academy')) {
+            if (textString.includes('Drivers Academy')) {
                 alreadyHasWatermark = true;
                 console.log('PDF: Existing watermark detected. Skipping redundant overlay.');
             }
@@ -822,7 +822,7 @@ async function renderPdfToCanvasList(pdfDoc: any, container: HTMLElement, initia
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('JKSSB Drivers Academy', 0, 0);
+                ctx.fillText('Drivers Academy', 0, 0);
                 ctx.restore();
             }
 

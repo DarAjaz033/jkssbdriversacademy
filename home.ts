@@ -1,7 +1,9 @@
 import { getCurrentUser, onAuthChange, isPremiumUser } from './auth-service';
 import { escapeHtml } from './utils/escape-html';
 import { getCourses, Course as AdminCourse } from './admin-service';
-import { openDirectPaymentModal } from './payment-service';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from './firebase-config';
+
 
 interface Course {
   id: string;
@@ -147,31 +149,63 @@ function openCourseModal(course: Course): void {
     if (e.target === overlay) overlay.remove();
   });
 
-  // Buy Now: Dummy payment flow no longer used — route everything through course purchase page
-  overlay.querySelector('#cdm-buy-btn-trigger')?.addEventListener('click', () => {
+  overlay.querySelector('#cdm-buy-btn-trigger')?.addEventListener('click', async (e) => {
+    const btn = e.target as HTMLButtonElement;
     const user = getCurrentUser();
     if (!user) {
       window.location.href = `./login.html?redirect=${encodeURIComponent(`index.html?buyCourse=${course.id}`)}`;
       return;
     }
 
-    // Fallback links if missing or incorrect in DB
-    let pLink = course.paymentLink;
-    const t = course.title.toLowerCase();
-    const isOldPapers = course.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
-    
-    if (!pLink || isOldPapers) {
-      if (isOldPapers) {
-        pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
-      } else if (t.includes('full course') || course.id === 'full_course') {
-        pLink = 'https://payments.cashfree.com/forms?code=jkssbfullcourse&formId=FULLCOURSE';
-      }
-    }
+    try {
+      const { getUserData } = await import('./auth-service');
+      const { createSecureOrder, launchCheckout, verifyPaymentStatus } = await import('./payment-service');
+      
+      const userData = await getUserData(user.uid);
+      const email = userData?.email || user.email || '';
+      const phone = userData?.phoneNumber || user.phoneNumber || '';
+      const name = userData?.name || userData?.displayName || user.displayName || '';
 
-    if (pLink) {
-      openDirectPaymentModal({ ...course, paymentLink: pLink } as any, user.uid);
-    } else {
-      window.location.href = `./course-details.html?id=${course.id}`;
+      if (!email || !phone || !name) {
+        let missing = [];
+        if (!name) missing.push('name');
+        if (!email) missing.push('email');
+        if (!phone) missing.push('phone number');
+        
+        alert("Complete your profile to continue\nPlease add your " + missing.join(', ') + " to purchase.");
+        window.location.href = './profile.html';
+        return;
+      }
+      
+      btn.textContent = "Processing...";
+      
+      const order = await createSecureOrder(course as unknown as import('./admin-service').Course, phone);
+      if (order.error || !order.paymentSessionId) {
+        alert("Payment Error: " + (order.error || "Failed to initialize"));
+        btn.textContent = "Buy Now";
+        return;
+      }
+      
+      const checkoutResult = await launchCheckout(order.paymentSessionId);
+      if (checkoutResult && checkoutResult.error) {
+         alert("Payment cancelled: " + checkoutResult.error.message);
+         btn.textContent = "Buy Now";
+         return;
+      }
+      
+      btn.textContent = "Verifying...";
+      const verify = await verifyPaymentStatus(order.orderId!);
+      if (verify.success) {
+        alert("🎉 Course Unlocked! Enjoy your course.");
+        window.location.href = "./my-courses.html";
+      } else {
+        alert("Payment not verified. Please contact support.");
+        btn.textContent = "Buy Now";
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Error: ' + e.message);
+      btn.textContent = "Buy Now";
     }
   });
 
@@ -191,6 +225,7 @@ class HomePage {
     this.init();
     this.setupExpandTopicsDelegation();
     this.updateProfileBadge();
+    this.initLiveListener();
   }
 
   private setupExpandTopicsDelegation(): void {
@@ -298,21 +333,7 @@ class HomePage {
       if (buyCourseId && this.currentUser) {
         const courseToBuy = courses.find(c => c.id === buyCourseId);
         if (courseToBuy && !enrolledIds.includes(courseToBuy.id)) {
-          let pLink = courseToBuy.paymentLink;
-          const t = courseToBuy.title.toLowerCase();
-          const isOldPapers = courseToBuy.id === 'old_papers' || (t.includes('old') && t.includes('paper'));
-
-          if (!pLink || isOldPapers) {
-            if (isOldPapers) {
-              pLink = 'https://payments.cashfree.com/forms?code=OldDriverPapers';
-            }
-          }
-
-          if (pLink) {
-            openDirectPaymentModal({ ...courseToBuy, paymentLink: pLink } as any, this.currentUser.uid);
-          } else {
-            window.location.href = `./course-details.html?id=${courseToBuy.id}`;
-          }
+          openCourseModal(courseToBuy);
           // Clean URL
           window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -431,7 +452,7 @@ class HomePage {
         <div class="mv-title">MOTOR<br>VEHICLE<br>ACT</div>
         <div class="mv-sub">1988 & CMV Rules 1989</div>
         <div class="mv-line"></div>
-        <div class="mv-by">By JKSSB Drivers Academy</div>
+        <div class="mv-by">By Drivers Academy</div>
       `
     };
     if (t.includes('part iii')) return {
@@ -453,7 +474,7 @@ class HomePage {
         <div class="mvb-main">MOTOR<br>VEHICLE<br>ACT</div>
         <div class="mvb-mcq">MCQs book</div>
         <div class="mvb-line"></div>
-        <div class="mvb-by">By JKSSB Drivers Academy</div>
+        <div class="mvb-by">By Drivers Academy</div>
       `
     };
     if (t.includes('old driver papers') || t.includes('old papers')) return {
@@ -465,7 +486,7 @@ class HomePage {
         <div class="op-sub">JKSSB & Other Boards</div>
         <div class="op-line"></div>
         <div class="op-detail">Previous Year Papers</div>
-        <div class="op-by">By JKSSB Drivers Academy</div>
+        <div class="op-by">By Drivers Academy</div>
       `
     };
     // Default fallback (e.g. for Full Syllabus MCQ Book)
@@ -478,7 +499,7 @@ class HomePage {
         <div class="mcq-sub">Full Syllabus Covered</div>
         <div class="mcq-line"></div>
         <div class="mcq-detail">Topic Wise · With Answers</div>
-        <div class="mcq-by">By JKSSB Drivers Academy</div>
+        <div class="mcq-by">By Drivers Academy</div>
       `
     };
   }
@@ -574,6 +595,104 @@ class HomePage {
       badge.className = 'home-profile-badge guest';
       badge.innerHTML = '👤';
       badge.style.display = 'flex';
+    }
+  }
+
+  // ─── Live Class Real-time Sync ─────────────────────────────────────────────
+  
+  private initLiveListener(): void {
+    const bannerPlaceholder = document.getElementById('live-banner-placeholder');
+    if (!bannerPlaceholder) return;
+
+    onSnapshot(doc(db, 'live_classes', 'current'), (snapshot) => {
+      const data = snapshot.data();
+      const appBarTitle = document.getElementById('page-title');
+      if (data && data.isLive) {
+        this.renderLiveBanner(data);
+        if (appBarTitle) {
+           appBarTitle.innerHTML = `JKSSB Drivers Academy <span class="app-bar-live-badge"><span class="pulse-dot-small"></span>LIVE</span>`;
+        }
+        
+        // Auto-open modal if requested via URL (parity with mobile app)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('open_live') === 'true') {
+          this.openLiveJoinModal(data.roomId || '000 000 0000');
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } else {
+        if (bannerPlaceholder) bannerPlaceholder.innerHTML = '';
+        if (appBarTitle) {
+           appBarTitle.innerHTML = `JKSSB Drivers Academy`;
+        }
+      }
+    });
+
+    // Modal Close Logic
+    const modal = document.getElementById('live-join-modal');
+    const closeBtn = document.getElementById('close-live-modal');
+    if (modal && closeBtn) {
+      closeBtn.onclick = () => modal.classList.remove('active');
+      modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
+    }
+  }
+
+  private renderLiveBanner(data: any): void {
+    const placeholder = document.getElementById('live-banner-placeholder');
+    if (!placeholder) return;
+
+    placeholder.innerHTML = `
+      <div class="live-banner animate-bottom" id="live-banner-trigger">
+        <div class="live-content">
+          <div class="live-indicator">
+            <span class="pulse-dot"></span>
+            LIVE
+          </div>
+          <div class="live-text">${escapeHtml(data.title || 'Live Class Started')}</div>
+        </div>
+        <button class="join-icon-btn">
+          <span>JOIN NOW</span>
+          <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+        </button>
+      </div>
+    `;
+
+    document.getElementById('live-banner-trigger')?.addEventListener('click', () => {
+      this.openLiveJoinModal(data.roomId || '000 000 0000');
+    });
+
+    (window as any).lucide?.createIcons();
+  }
+
+  private openLiveJoinModal(roomId: string): void {
+    const modal = document.getElementById('live-join-modal');
+    const idDisplay = document.getElementById('classroom-id-display');
+    const copyBtn = document.getElementById('copy-id-btn');
+    const openAppBtn = document.getElementById('open-app-direct-btn');
+
+    if (!modal || !idDisplay) return;
+
+    idDisplay.textContent = roomId;
+    modal.classList.add('active');
+
+    if (copyBtn) {
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(roomId).then(() => {
+          if ((window as any).showToast) (window as any).showToast('Classroom ID Copied!', 'success');
+        });
+      };
+    }
+
+    if (openAppBtn) {
+      openAppBtn.onclick = () => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          window.open('https://apps.apple.com/us/app/educate-online-teaching-app/id1643531047', '_blank');
+        } else {
+          // Launch the app directly using the package name "com.educate.theteachingapp"
+          window.open('intent://#Intent;package=com.educate.theteachingapp;scheme=educate;end;', '_blank');
+        }
+      };
     }
   }
 }

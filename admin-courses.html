@@ -351,6 +351,9 @@
           <i data-lucide="video" width="20" height="20"></i>
           Manage Videos
         </a>
+        <a href="./admin-users.html" class="admin-nav-item">
+          <i data-lucide="users" width="20" height="20"></i> User Access
+        </a>
         <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
           <a href="./index.html" class="admin-nav-item">
             <i data-lucide="home" width="20" height="20"></i> Back to Site
@@ -518,6 +521,24 @@
                     <label class="form-label">Bottom Caption</label>
                     <input type="text" id="thumb-bottom-caption" class="form-input"
                       placeholder="e.g. Notes, Videos + MCQ Book" />
+                  </div>
+                </div>
+
+                <!-- Thumbnail Upload (matches Flutter app Firebase Storage path) -->
+                <div style="margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid #E2E8F0;">
+                  <h3 style="font-size:1rem; color:#1E293B; margin-bottom:0.75rem;">Course Thumbnail Image</h3>
+                  <p style="font-size:0.78rem;color:#64748B;margin-bottom:0.75rem;">Upload the same JPG/PNG/GIF you set in the Flutter app. Path: <code>courses/thumbnails/{id}</code></p>
+                  <img id="thumb-preview" src="" alt="Thumbnail preview"
+                    style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:0.75rem;">
+                  <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <label for="thumb-file" style="flex:1;display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:0.5rem;cursor:pointer;font-size:0.875rem;color:#475569;">
+                      <i data-lucide="image" width="16" height="16"></i>
+                      <span id="thumb-label">Choose image or GIF</span>
+                    </label>
+                    <input type="file" id="thumb-file" accept="image/*,.gif" style="display:none;">
+                    <button type="button" id="thumb-clear-btn" style="display:none;padding:0.5rem;background:#FEF2F2;border:1px solid #FECACA;border-radius:0.5rem;cursor:pointer;color:#DC2626;">
+                      <i data-lucide="x" width="16" height="16"></i>
+                    </button>
                   </div>
                 </div>
 

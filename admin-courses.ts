@@ -1,5 +1,5 @@
 import { onAuthChange } from './auth-service';
-import { isAdmin, getCourses, createCourse, updateCourse, updateCourseRank, deleteCourse, Course } from './admin-service';
+import { isAdmin, getCourses, createCourse, updateCourse, updateCourseRank, deleteCourse, Course, uploadCourseThumbnail } from './admin-service';
 import { showToast, showConfirm } from './admin-toast';
 
 class AdminCoursesPage {
@@ -9,6 +9,8 @@ class AdminCoursesPage {
   private coursesContainer: HTMLElement;
   private editingCourseId: string | null = null;
   private coursesList: Course[] = [];
+  private pendingThumbnail: File | null = null;
+  private existingThumbnailUrl: string | null = null;
 
   private descriptionPointsContainer: HTMLElement;
   private addPointBtn: HTMLButtonElement;
@@ -20,6 +22,7 @@ class AdminCoursesPage {
     this.coursesContainer = document.getElementById('courses-container') as HTMLElement;
     this.descriptionPointsContainer = document.getElementById('description-points-container') as HTMLElement;
     this.addPointBtn = document.getElementById('add-point-btn') as HTMLButtonElement;
+    this.setupThumbnailInput();
     this.init();
   }
 
@@ -37,6 +40,49 @@ class AdminCoursesPage {
       this.ensureDescriptionPoints();
       await this.loadCourses();
     }, true);
+  }
+
+  // ─── Thumbnail Input ─────────────────────────────────────────────────────────
+
+  private setupThumbnailInput(): void {
+    const thumbInput = document.getElementById('thumb-file') as HTMLInputElement | null;
+    const thumbPreview = document.getElementById('thumb-preview') as HTMLImageElement | null;
+    const thumbClearBtn = document.getElementById('thumb-clear-btn') as HTMLButtonElement | null;
+    const thumbLabel = document.getElementById('thumb-label') as HTMLElement | null;
+
+    if (!thumbInput) return;
+
+    thumbInput.addEventListener('change', () => {
+      const file = thumbInput.files?.[0];
+      if (!file) return;
+      this.pendingThumbnail = file;
+      const url = URL.createObjectURL(file);
+      if (thumbPreview) { thumbPreview.src = url; thumbPreview.style.display = 'block'; }
+      if (thumbLabel) thumbLabel.textContent = file.name;
+      if (thumbClearBtn) thumbClearBtn.style.display = 'inline-flex';
+    });
+
+    thumbClearBtn?.addEventListener('click', () => {
+      this.pendingThumbnail = null;
+      this.existingThumbnailUrl = null;
+      thumbInput.value = '';
+      if (thumbPreview) { thumbPreview.src = ''; thumbPreview.style.display = 'none'; }
+      if (thumbLabel) thumbLabel.textContent = 'Choose image or GIF';
+      if (thumbClearBtn) thumbClearBtn.style.display = 'none';
+    });
+  }
+
+  private updateThumbnailPreview(url: string | null | undefined): void {
+    const thumbPreview = document.getElementById('thumb-preview') as HTMLImageElement | null;
+    const thumbClearBtn = document.getElementById('thumb-clear-btn') as HTMLButtonElement | null;
+    const thumbLabel = document.getElementById('thumb-label') as HTMLElement | null;
+    this.existingThumbnailUrl = url || null;
+    if (thumbPreview) {
+      if (url) { thumbPreview.src = url; thumbPreview.style.display = 'block'; }
+      else { thumbPreview.src = ''; thumbPreview.style.display = 'none'; }
+    }
+    if (thumbLabel) thumbLabel.textContent = url ? 'Current thumbnail' : 'Choose image or GIF';
+    if (thumbClearBtn) thumbClearBtn.style.display = url ? 'inline-flex' : 'none';
   }
 
   // ─── Description Helpers ─────────────────────────────────────────────────────
@@ -90,11 +136,17 @@ class AdminCoursesPage {
     });
   }
 
-  private parseDescriptionToForm(description: string): void {
+  private parseDescriptionToForm(description: string, descriptionPoints?: string[]): void {
+    this.descriptionPointsContainer.innerHTML = '';
+    // ✅ Prefer the array from Firestore (Flutter app format)
+    if (Array.isArray(descriptionPoints) && descriptionPoints.length > 0) {
+      descriptionPoints.forEach(p => this.addDescriptionPoint(p, false));
+      return;
+    }
+    // Fallback: parse concatenated string (legacy website format)
     const trimmed = description.trim();
     const segments = trimmed.split(/\s*\d+\.\s+/).map(s => s.trim()).filter(Boolean);
     (document.getElementById('description-heading') as HTMLInputElement).value = '';
-    this.descriptionPointsContainer.innerHTML = '';
     if (segments.length > 1) {
       (document.getElementById('description-heading') as HTMLInputElement).value = segments[0];
       segments.slice(1).forEach(p => this.addDescriptionPoint(p, false));
@@ -132,13 +184,19 @@ class AdminCoursesPage {
       paymentLink,
       validityDays,
       descriptionHeading,
+      // ✅ Save as string[] arrays — matches Flutter app's Firestore structure
+      descriptionPoints: Array.from(
+        this.descriptionPointsContainer.querySelectorAll<HTMLInputElement>('.description-point-input')
+      ).map(i => i.value.trim()).filter(Boolean),
       thumbCssClass: (document.getElementById('thumb-css-class') as HTMLSelectElement).value,
       thumbBadge: (document.getElementById('thumb-badge') as HTMLInputElement).value.trim(),
       thumbBadgeStyle: (document.getElementById('thumb-badge-style') as HTMLSelectElement).value,
       thumbTopLabel: (document.getElementById('thumb-top-label') as HTMLInputElement).value.trim(),
       thumbMainHeading: (document.getElementById('thumb-main-heading') as HTMLInputElement).value.trim(),
       thumbSubHeading: (document.getElementById('thumb-sub-heading') as HTMLInputElement).value.trim(),
-      thumbPartTags: (document.getElementById('thumb-part-tags') as HTMLInputElement).value.trim(),
+      // ✅ Save as string[] — matches Flutter app
+      thumbPartTags: (document.getElementById('thumb-part-tags') as HTMLInputElement).value
+        .split(',').map(s => s.trim()).filter(Boolean),
       thumbBottomCaption: (document.getElementById('thumb-bottom-caption') as HTMLInputElement).value.trim(),
       pdfIds: [],
       practiceTestIds: []
@@ -158,6 +216,24 @@ class AdminCoursesPage {
       : await createCourse(courseData as Course);
 
     if (result.success) {
+      const savedId = this.editingCourseId || (result as any).id;
+      // ✅ Upload thumbnail if one was picked — matches Flutter app Storage path
+      if (this.pendingThumbnail && savedId) {
+        this.submitBtn.textContent = 'Uploading thumbnail…';
+        const upResult = await uploadCourseThumbnail(savedId, this.pendingThumbnail, (pct) => {
+          this.submitBtn.textContent = `Uploading ${pct}%…`;
+        });
+        if (upResult.success && upResult.url) {
+          await updateCourse(savedId, { thumbnailUrl: upResult.url } as any);
+        } else {
+          showToast('Course saved, but thumbnail upload failed: ' + upResult.error, 'warning');
+        }
+      } else if (this.existingThumbnailUrl === null && this.editingCourseId) {
+        // Thumbnail was explicitly cleared
+        await updateCourse(this.editingCourseId, { thumbnailUrl: null } as any);
+      }
+      this.pendingThumbnail = null;
+      this.existingThumbnailUrl = null;
       showToast(this.editingCourseId ? 'Course updated successfully!' : 'Course created successfully!', 'success');
       this.form.reset();
       this.cancelEdit();
@@ -200,8 +276,12 @@ class AdminCoursesPage {
     const rank = index + 1;
     const canUp = index > 0;
     const canDown = index < this.coursesList.length - 1;
+    const thumbHtml = course.thumbnailUrl
+      ? `<img src="${course.thumbnailUrl}" alt="" style="width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);">`
+      : `<div style="width:52px;height:52px;border-radius:8px;background:var(--bg-secondary);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">${course.emoji || '📚'}</div>`;
     return `
       <div class="course-card" data-id="${course.id}">
+        ${thumbHtml}
         <div class="course-info">
           <h3>${course.title}</h3>
           <div class="course-meta">
@@ -318,6 +398,7 @@ class AdminCoursesPage {
     if (!course) return;
 
     this.editingCourseId = courseId;
+    this.pendingThumbnail = null;
     (document.getElementById('category') as HTMLSelectElement).value = course.category || 'Complete Package';
     (document.getElementById('title') as HTMLInputElement).value = course.title;
     (document.getElementById('price') as HTMLInputElement).value = course.price.toString();
@@ -332,9 +413,14 @@ class AdminCoursesPage {
     (document.getElementById('thumb-top-label') as HTMLInputElement).value = course.thumbTopLabel ?? '';
     (document.getElementById('thumb-main-heading') as HTMLInputElement).value = course.thumbMainHeading ?? '';
     (document.getElementById('thumb-sub-heading') as HTMLInputElement).value = course.thumbSubHeading ?? '';
-    (document.getElementById('thumb-part-tags') as HTMLInputElement).value = course.thumbPartTags ?? '';
+    // ✅ Handle thumbPartTags as array (Flutter app) or legacy string
+    const partTagsVal = Array.isArray(course.thumbPartTags)
+      ? (course.thumbPartTags as string[]).join(', ')
+      : (course.thumbPartTags as string ?? '');
+    (document.getElementById('thumb-part-tags') as HTMLInputElement).value = partTagsVal;
     (document.getElementById('thumb-bottom-caption') as HTMLInputElement).value = course.thumbBottomCaption ?? '';
-    this.parseDescriptionToForm(course.description);
+    this.parseDescriptionToForm(course.description, course.descriptionPoints);
+    this.updateThumbnailPreview(course.thumbnailUrl);
 
     document.getElementById('form-title')!.textContent = 'Edit Course';
     this.submitBtn.textContent = 'Update Course';
@@ -345,6 +431,8 @@ class AdminCoursesPage {
 
   private cancelEdit(): void {
     this.editingCourseId = null;
+    this.pendingThumbnail = null;
+    this.existingThumbnailUrl = null;
     this.form.reset();
     (document.getElementById('thumb-css-class') as HTMLSelectElement).value = 'thumb-fullcourse';
     (document.getElementById('category') as HTMLSelectElement).value = 'Complete Package';
@@ -352,6 +440,7 @@ class AdminCoursesPage {
     (document.getElementById('description-heading') as HTMLInputElement).value = '';
     this.descriptionPointsContainer.innerHTML = '';
     this.ensureDescriptionPoints();
+    this.updateThumbnailPreview(null);
     document.getElementById('form-title')!.textContent = 'Create New Course';
     this.submitBtn.textContent = 'Create Course';
     this.cancelBtn.style.display = 'none';

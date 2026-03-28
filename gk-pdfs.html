@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <script>
     (function () {
@@ -17,38 +16,107 @@
         'frost': '#E0F2FE',
         'minimal': '#000000'
       };
-      document.write('<meta name="theme-color" content="' + (themeColors[savedTheme] || '#B45309') + '">');
+      const color = themeColors[savedTheme] || '#B45309';
+      document.write('<meta name="theme-color" content="' + color + '">');
     })();
   </script>
-  
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>GK PDFs | JKSSB Drivers Academy</title>
-  <link rel="stylesheet" href="./styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>GK PDFs & Study Material - JKSSB Drivers Academy</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
-  </head>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    body {
+      background: var(--bg-page);
+      font-family: 'Poppins', sans-serif;
+    }
 
+    .gk-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px 16px 80px 16px;
+    }
+
+    .pdf-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pdf-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s;
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pdf-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .pdf-info {
+      flex: 1;
+    }
+
+    .pdf-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .pdf-subtitle {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 2px 0 0 0;
+    }
+
+    .download-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(180, 83, 9, 0.08);
+      border: none;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .download-btn:active {
+      transform: scale(0.9);
+      background: var(--primary);
+      color: white;
+    }
+  </style>
+</head>
 <body>
   <div id="app">
     <header class="app-bar">
@@ -57,113 +125,103 @@
           <i data-lucide="arrow-left" width="24" height="24"></i>
         </button>
         <div class="app-bar-title">
-          <span>GK PDFs</span>
-        
-          
-          </div>
+          <span>📥 GK PDFs & Study Material</span>
+        </div>
         <div style="width: 40px;"></div>
       </div>
     </header>
 
     <main class="page-container">
-      <div class="page-content">
-        <div class="info-card">
-          <div class="info-icon">
-            <i data-lucide="book-open" width="48" height="48"></i>
+      <div class="gk-container">
+        <div class="pdf-list">
+          <!-- Item 1 -->
+          <div class="pdf-card">
+            <div class="pdf-icon-box">📖</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">Traffic Signals & Signs</h3>
+              <p class="pdf-subtitle">Complete guide to road signals</p>
+            </div>
+            <button class="download-btn" onclick="downloadPdf('traffic_signals.pdf')">
+              <i data-lucide="download"></i>
+            </button>
           </div>
-          <h1 class="info-title">General Knowledge</h1>
-          <p class="info-description">
-            General Knowledge study material specially prepared for
-            JKSSB Driver and other competitive driver recruitment exams.
-          </p>
-        </div>
 
-        <div class="section-header">
-          <h2>What's Included</h2>
-        </div>
+          <!-- Item 2 -->
+          <div class="pdf-card" style="animation-delay: 0.1s">
+            <div class="pdf-icon-box">📋</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">MV Act 1988 Summary</h3>
+              <p class="pdf-subtitle">100-page summarized notes</p>
+            </div>
+            <button class="download-btn" onclick="downloadPdf('mv_act_summary.pdf')">
+              <i data-lucide="download"></i>
+            </button>
+          </div>
 
-        <div class="feature-list">
-          <div class="feature-item">
-            <div class="feature-icon success">
-              <i data-lucide="check-circle"></i>
+          <!-- Item 3 -->
+          <div class="pdf-card" style="animation-delay: 0.2s">
+            <div class="pdf-icon-box">📝</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">CMV Rules Key Points</h3>
+              <p class="pdf-subtitle">Most important rules for exam</p>
             </div>
-            <div class="feature-content">
-              <h3>Static GK Notes</h3>
-              <p>Important facts and topics</p>
-            </div>
+            <button class="download-btn" onclick="downloadPdf('cmv_rules.pdf')">
+              <i data-lucide="download"></i>
+            </button>
           </div>
-          <div class="feature-item">
-            <div class="feature-icon success">
-              <i data-lucide="check-circle"></i>
-            </div>
-            <div class="feature-content">
-              <h3>Current Affairs</h3>
-              <p>Summaries and updates</p>
-            </div>
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon success">
-              <i data-lucide="check-circle"></i>
-            </div>
-            <div class="feature-content">
-              <h3>Quick Revision Sheets</h3>
-              <p>Fast review before exams</p>
-            </div>
-          </div>
-        </div>
 
-        <div class="alert-card success">
-          <div class="alert-icon">
-            <i data-lucide="refresh-cw"></i>
+          <!-- Item 4 -->
+          <div class="pdf-card" style="animation-delay: 0.3s">
+            <div class="pdf-icon-box">🔧</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">Mechanical Basics</h3>
+              <p class="pdf-subtitle">Simple mechanical knowledge notes</p>
+            </div>
+            <button class="download-btn" onclick="downloadPdf('mechanical.pdf')">
+              <i data-lucide="download"></i>
+            </button>
           </div>
-          <div class="alert-content">
-            <h3>Regular Updates</h3>
-            <p>This material will be updated regularly to ensure candidates stay aligned with the latest exam trends.
-            </p>
+
+          <!-- Item 5 -->
+          <div class="pdf-card" style="animation-delay: 0.4s">
+            <div class="pdf-icon-box">📄</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">Previous Year Papers</h3>
+              <p class="pdf-subtitle">Last 5 years question papers</p>
+            </div>
+            <button class="download-btn" onclick="downloadPdf('pyq.pdf')">
+              <i data-lucide="download"></i>
+            </button>
           </div>
-        </div>
 
-        <div class="section-header">
-          <h2>Available PDFs</h2>
-        </div>
-
-        <div class="menu-list">
-          <a href="./pdf-viewer.html?name=Static+GK+Complete+Notes&url=" class="menu-item" id="pdf-item-1">
-            <div class="menu-icon">
-              <i data-lucide="file-text"></i>
+          <!-- Item 6 -->
+          <div class="pdf-card" style="animation-delay: 0.5s">
+            <div class="pdf-icon-box">✅</div>
+            <div class="pdf-info">
+              <h3 class="pdf-title">Mock Test Paper 1</h3>
+              <p class="pdf-subtitle">100 MCQs — Full Syllabus</p>
             </div>
-            <span>Static GK Complete Notes</span>
-            <i data-lucide="eye" width="20" height="20"></i>
-          </a>
-          <a href="./pdf-viewer.html?name=Current+Affairs+Monthly&url=" class="menu-item" id="pdf-item-2">
-            <div class="menu-icon">
-              <i data-lucide="file-text"></i>
-            </div>
-            <span>Current Affairs Monthly</span>
-            <i data-lucide="eye" width="20" height="20"></i>
-          </a>
-          <a href="./pdf-viewer.html?name=Quick+Revision+Sheet&url=" class="menu-item" id="pdf-item-3">
-            <div class="menu-icon">
-              <i data-lucide="file-text"></i>
-            </div>
-            <span>Quick Revision Sheet</span>
-            <i data-lucide="eye" width="20" height="20"></i>
-          </a>
-          <a href="./pdf-viewer.html?name=Important+Facts+Compilation&url=" class="menu-item" id="pdf-item-4">
-            <div class="menu-icon">
-              <i data-lucide="file-text"></i>
-            </div>
-            <span>Important Facts Compilation</span>
-            <i data-lucide="eye" width="20" height="20"></i>
-          </a>
+            <button class="download-btn" onclick="downloadPdf('mock_1.pdf')">
+              <i data-lucide="download"></i>
+            </button>
+          </div>
         </div>
       </div>
     </main>
+
+    <script src="./nav.js"></script>
+    <script>
+      lucide.createIcons();
+      window.downloadPdf = (file) => {
+        // App shows snackbar, we show toast
+        if (window.showToast) {
+          window.showToast(`Downloading ${file}...`, 'info');
+        } else {
+          alert(`Downloading ${file}...`);
+        }
+      };
+    </script>
   </div>
-
-  <script type="module" src="./app.ts"></script>
-  <script>lucide.createIcons();</script>
-  <script src="./nav.js"></script>
 </body>
-
 </html>
+

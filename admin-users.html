@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('siteTheme') || 'minimal';
+      if (savedTheme !== 'default') document.documentElement.setAttribute('data-theme', savedTheme);
+      const colors = { 'default': '#B45309', 'green': '#047857', 'blue': '#1E40AF', 'golden': '#AA8A2E', 'black': '#0A0A0A', 'frost': '#E0F2FE', 'minimal': '#000000' };
+      document.write('<meta name="theme-color" content="' + (colors[savedTheme] || '#B45309') + '">');
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Access | Admin Panel</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root { --sidebar-width: 280px; }
+
+    .admin-container { display: flex; min-height: 100vh; background: #F8FAFC; }
+    .admin-sidebar { width: var(--sidebar-width); background: #1E293B; color: white; padding: 1.5rem; position: fixed; height: 100vh; z-index: 50; overflow-y: auto; }
+    .admin-brand { display: flex; align-items: center; gap: .75rem; font-size: 1.25rem; font-weight: 700; color: white; margin-bottom: 2.5rem; padding: 0 .5rem; }
+    .admin-nav-item { display: flex; align-items: center; gap: .75rem; padding: .875rem 1rem; border-radius: .5rem; color: #94A3B8; text-decoration: none; margin-bottom: .5rem; transition: all .2s; font-weight: 500; }
+    .admin-nav-item:hover { background: rgba(255,255,255,.05); color: white; }
+    .admin-nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(180,83,9,.2); }
+    .admin-main { flex: 1; margin-left: var(--sidebar-width); padding: 2rem; }
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.875rem; font-weight: 700; color: #0F172A; margin-bottom: .5rem; }
+    .page-header p { color: #64748B; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #E2E8F0; }
+    .tab-btn { padding: .75rem 1.25rem; background: none; border: none; font-weight: 600; font-size: .9rem; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Cards */
+    .card { background: white; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); border: 1px solid #E2E8F0; overflow: hidden; margin-bottom: 1rem; }
+    .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h2 { font-size: 1.125rem; font-weight: 600; color: #1E293B; }
+    .card-body { padding: 1.5rem; }
+
+    /* Search */
+    .search-bar { display: flex; gap: .75rem; margin-bottom: 1rem; }
+    .search-input { flex: 1; padding: .75rem 1rem; border: 1px solid #E2E8F0; border-radius: .5rem; font-size: .9rem; outline: none; }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(180,83,9,.1); }
+    .btn-primary { background: var(--primary); color: white; border: none; padding: .75rem 1.25rem; border-radius: .5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: .4rem; transition: all .2s; }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-secondary { background: #E2E8F0; color: #475569; border: none; padding: .75rem 1.25rem; border-radius: .5rem; font-weight: 600; cursor: pointer; }
+    .btn-danger { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: .5rem .875rem; border-radius: .5rem; font-size: .8rem; cursor: pointer; font-weight: 600; }
+    .btn-success { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; padding: .5rem .875rem; border-radius: .5rem; font-size: .8rem; cursor: pointer; font-weight: 600; }
+    .btn-icon-sm { background: #F8FAFC; border: 1px solid #E2E8F0; padding: .4rem .75rem; border-radius: .375rem; cursor: pointer; font-size: .78rem; font-weight: 600; color: #475569; }
+
+    /* Filter chips */
+    .filter-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .chip { padding: .375rem .875rem; border-radius: 9999px; border: 1px solid #E2E8F0; background: white; font-size: .8rem; font-weight: 500; cursor: pointer; color: #64748B; }
+    .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* User row */
+    .user-row { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid #F1F5F9; cursor: pointer; transition: background .15s; }
+    .user-row:hover { background: #F8FAFC; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-weight: 600; color: #1E293B; font-size: .95rem; }
+    .user-meta { font-size: .8rem; color: #64748B; }
+
+    /* Status badges */
+    .badge { display: inline-flex; align-items: center; gap: .25rem; padding: .2rem .65rem; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
+    .badge-active { background: #F0FDF4; color: #16A34A; }
+    .badge-expired { background: #FEF2F2; color: #DC2626; }
+    .badge-soon { background: #FFFBEB; color: #B45309; }
+    .badge-pending { background: #EFF6FF; color: #2563EB; }
+    .badge-admin { background: #F5F3FF; color: #7C3AED; }
+
+    /* Course item within user detail */
+    .course-item { display: flex; align-items: center; gap: 1rem; padding: .875rem; border: 1px solid #E2E8F0; border-radius: .75rem; margin-bottom: .6rem; }
+    .course-item-info { flex: 1; }
+    .course-item-name { font-weight: 600; font-size: .9rem; color: #1E293B; }
+    .course-item-expiry { font-size: .78rem; color: #64748B; margin-top: .15rem; }
+    .course-item-actions { display: flex; gap: .5rem; }
+
+    /* Course accordion (By Course tab) */
+    .course-accordion { border: 1px solid #E2E8F0; border-radius: .75rem; margin-bottom: .75rem; overflow: hidden; }
+    .accordion-header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; cursor: pointer; background: white; transition: background .15s; }
+    .accordion-header:hover { background: #F8FAFC; }
+    .accordion-header-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #E2E8F0; flex-shrink: 0; }
+    .accordion-body { border-top: 1px solid #E2E8F0; background: #FAFBFC; display: none; }
+    .accordion-body.open { display: block; }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal { background: white; border-radius: 1rem; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #E2E8F0; display: flex; gap: .75rem; justify-content: flex-end; }
+    .modal-close { background: none; border: none; cursor: pointer; color: #64748B; padding: .25rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: .85rem; font-weight: 600; color: #374151; margin-bottom: .35rem; }
+    .form-input { width: 100%; padding: .65rem .875rem; border: 1px solid #D1D5DB; border-radius: .5rem; font-size: .9rem; outline: none; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(180,83,9,.1); }
+    .form-select { width: 100%; padding: .65rem .875rem; border: 1px solid #D1D5DB; border-radius: .5rem; font-size: .9rem; background: white; outline: none; }
+
+    /* FAB */
+    .fab { position: fixed; bottom: 2rem; right: 2rem; background: var(--primary); color: white; border: none; border-radius: 9999px; padding: 1rem 1.5rem; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(180,83,9,.35); display: flex; align-items: center; gap: .5rem; z-index: 100; transition: all .2s; }
+    .fab:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(180,83,9,.4); }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #94A3B8; }
+    .empty-state i { margin-bottom: 1rem; }
+    .spinner { border: 3px solid #E2E8F0; border-top-color: var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin .6s linear infinite; margin: 2rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider { border: none; border-top: 1px solid #E2E8F0; margin: 1rem 0; }
+
+    @media (max-width: 768px) {
+      .admin-sidebar { transform: translateX(-100%); }
+      .admin-main { margin-left: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="admin-container">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <i data-lucide="shield-check"></i>
+        <span>Admin Portal</span>
+      </div>
+      <nav>
+        <a href="./admin-dashboard.html" class="admin-nav-item">
+          <i data-lucide="layout-dashboard" width="20" height="20"></i> Dashboard
+        </a>
+        <a href="./admin-courses.html" class="admin-nav-item">
+          <i data-lucide="book-open" width="20" height="20"></i> Courses
+        </a>
+        <a href="./admin-pdfs.html" class="admin-nav-item">
+          <i data-lucide="file-text" width="20" height="20"></i> PDFs
+        </a>
+        <a href="./admin-tests.html" class="admin-nav-item">
+          <i data-lucide="clipboard-list" width="20" height="20"></i> Practice Tests
+        </a>
+        <a href="./admin-purchases.html" class="admin-nav-item">
+          <i data-lucide="shopping-cart" width="20" height="20"></i> Purchases
+        </a>
+        <a href="./admin-videos.html" class="admin-nav-item">
+          <i data-lucide="video" width="20" height="20"></i> Manage Videos
+        </a>
+        <a href="./admin-users.html" class="admin-nav-item active">
+          <i data-lucide="users" width="20" height="20"></i> User Access
+        </a>
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+          <a href="./index.html" class="admin-nav-item">
+            <i data-lucide="home" width="20" height="20"></i> Back to Site
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="admin-main">
+      <div class="page-header">
+        <h1>User Access Management</h1>
+        <p>Grant, extend, or revoke course access. Changes sync instantly with the Flutter app.</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="by-course">By Course</button>
+        <button class="tab-btn" data-tab="admin-given">Admin Given</button>
+        <button class="tab-btn" data-tab="search">Search Users</button>
+      </div>
+
+      <!-- Tab: By Course -->
+      <div class="tab-panel active" id="tab-by-course">
+        <div id="courses-accordion-container">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Admin Given -->
+      <div class="tab-panel" id="tab-admin-given">
+        <div class="card">
+          <div class="card-header">
+            <h2>Pending Grants <span id="pending-count" style="font-size:.8rem;color:#64748B;font-weight:400;"></span></h2>
+            <button class="btn-primary" id="refresh-pending-btn" style="font-size:.8rem;padding:.5rem 1rem;">
+              <i data-lucide="refresh-cw" width="14" height="14"></i> Refresh
+            </button>
+          </div>
+          <div id="pending-grants-container">
+            <div class="spinner"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1.5rem;">
+          <div class="card-header">
+            <h2>Active Admin Grants <span id="active-grants-count" style="font-size:.8rem;color:#64748B;font-weight:400;"></span></h2>
+          </div>
+          <div id="active-grants-container">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Search Users -->
+      <div class="tab-panel" id="tab-search">
+        <div class="card">
+          <div class="card-body" style="padding-bottom:.75rem;">
+            <div class="search-bar">
+              <input class="search-input" type="text" id="user-search-input" placeholder="Search by name, phone (+91XXXXXXXXXX) or email…">
+              <button class="btn-primary" id="user-search-btn">
+                <i data-lucide="search" width="16" height="16"></i> Search
+              </button>
+            </div>
+            <div class="filter-chips" id="filter-chips">
+              <div class="chip active" data-filter="All Users">All Users</div>
+              <div class="chip" data-filter="Active only">Active Only</div>
+              <div class="chip" data-filter="Expired only">Expired Only</div>
+              <div class="chip" data-filter="Expiring in 7 days">Expiring in 7 days</div>
+              <div class="chip" data-filter="Admin granted access only">Admin Granted</div>
+            </div>
+          </div>
+          <div id="search-results-container">
+            <div class="empty-state">
+              <i data-lucide="search" width="40" height="40" style="color:#CBD5E1;"></i>
+              <p>Search for users above or select a filter</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FAB: Grant Access -->
+  <button class="fab" id="grant-access-fab">
+    <i data-lucide="user-plus" width="20" height="20"></i>
+    Grant Access
+  </button>
+
+  <!-- Modal: Grant Access -->
+  <div class="modal-backdrop" id="grant-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 style="font-size:1.1rem;font-weight:700;color:#1E293B;" id="grant-modal-title">Grant Course Access</h2>
+        <button class="modal-close" id="grant-modal-close"><i data-lucide="x" width="20" height="20"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="grant-prefilled-info" style="display:none;margin-bottom:1rem;padding:.75rem;background:#F0FDF4;border-radius:.5rem;border:1px solid #BBF7D0;">
+          <span id="grant-prefilled-name" style="font-weight:600;color:#16A34A;"></span>
+          <input type="hidden" id="grant-prefilled-uid">
+        </div>
+        <div class="form-group" id="grant-identifier-group">
+          <label class="form-label">Phone (+91XXXXXXXXXX) or Email</label>
+          <input class="form-input" type="text" id="grant-identifier" placeholder="e.g. 9876543210 or user@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course</label>
+          <select class="form-select" id="grant-course-id">
+            <option value="">— Select Course —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Access Expiry Date</label>
+          <input class="form-input" type="date" id="grant-expiry">
+        </div>
+        <div id="grant-result" style="display:none;padding:.75rem;border-radius:.5rem;font-size:.9rem;margin-top:.5rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="grant-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="grant-submit-btn">
+          <i data-lucide="check" width="16" height="16"></i>
+          <span id="grant-submit-label">Grant Access</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: User Detail -->
+  <div class="modal-backdrop" id="user-detail-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:.875rem;">
+          <div class="user-avatar" id="detail-avatar">U</div>
+          <div>
+            <div style="font-weight:700;font-size:1.05rem;color:#1E293B;" id="detail-name">User</div>
+            <div style="font-size:.8rem;color:#64748B;" id="detail-meta"></div>
+          </div>
+        </div>
+        <button class="modal-close" id="detail-modal-close"><i data-lucide="x" width="20" height="20"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.8rem;color:#94A3B8;margin-bottom:.75rem;">UID: <code id="detail-uid"></code></p>
+        <h3 style="font-weight:700;font-size:.95rem;color:#1E293B;margin-bottom:.75rem;">Course Access</h3>
+        <div id="detail-courses-container"><div class="spinner"></div></div>
+        <hr class="divider">
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+          <button class="btn-primary" id="detail-add-course-btn" style="font-size:.85rem;padding:.6rem 1rem;">
+            <i data-lucide="plus" width="14" height="14"></i> Add Course
+          </button>
+          <button id="detail-notify-btn" style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;padding:.6rem 1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.35rem;">
+            <i data-lucide="bell" width="14" height="14"></i> Notify
+          </button>
+          <button id="detail-delete-btn" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;padding:.6rem 1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.35rem;margin-left:auto;">
+            <i data-lucide="trash-2" width="14" height="14"></i> Delete User
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Extend Expiry -->
+  <div class="modal-backdrop" id="extend-modal" style="display:none;">
+    <div class="modal" style="max-width:360px;">
+      <div class="modal-header">
+        <h2 style="font-size:1rem;font-weight:700;color:#1E293B;">Extend Expiry</h2>
+        <button class="modal-close" id="extend-modal-close"><i data-lucide="x" width="20" height="20"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="extend-course-name" style="font-size:.9rem;color:#64748B;margin-bottom:1rem;"></p>
+        <div class="form-group">
+          <label class="form-label">Additional Days</label>
+          <input class="form-input" type="number" id="extend-days" value="365" min="1">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="extend-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="extend-confirm-btn"><i data-lucide="calendar-plus" width="14" height="14"></i> Extend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Notify User -->
+  <div class="modal-backdrop" id="notify-modal" style="display:none;">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h2 style="font-size:1rem;font-weight:700;color:#1E293B;">Send Notification</h2>
+        <button class="modal-close" id="notify-modal-close"><i data-lucide="x" width="20" height="20"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input class="form-input" type="text" id="notify-title" placeholder="Notification title">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea class="form-input" id="notify-body" rows="3" placeholder="Message body…" style="resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="notify-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="notify-send-btn"><i data-lucide="send" width="14" height="14"></i> Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-root" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;"></div>
+
+  <script type="module" src="./admin-users.ts"></script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>
