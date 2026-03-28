@@ -16,7 +16,7 @@
   /* ── Active tab detection ─────────────────────────────────────── */
   var isMore = ['privacy-policy.html', 'terms-and-conditions.html', 'refund-policy.html',
     'cookie-policy.html', 'contact.html', 'feedback.html', 'copyright-warning.html',
-    'jkssb-updates.html', 'profile.html'].indexOf(page) !== -1;
+    'jkssb-updates.html', 'more.html', 'profile.html'].indexOf(page) !== -1;
   var isLearning = ['mock-tests.html', 'practice-test.html', 'gk-pdfs.html',
     'demo-pdfs.html'].indexOf(page) !== -1;
   var isCourseDetails = ['course-details.html'].indexOf(page) !== -1;
@@ -150,7 +150,7 @@
       '<a href="./index.html"' + (isHome ? ' class="active"' : '') + '>' + SVG.home + '<span>Home</span></a>' +
       '<a href="./my-courses.html"' + (isCourses ? ' class="active"' : '') + '>' + SVG.book + '<span>My Course</span></a>' +
       '<a href="./course-details.html?id=full_course"' + (isCourseDetails ? ' class="active"' : '') + '>' + SVG.grad + '<span>Course Details</span></a>' +
-      '<a href="./profile.html"' + (isMore ? ' class="active"' : '') + '>' + SVG.more + '<span>More</span></a>';
+      '<a href="./more.html"' + (isMore ? ' class="active"' : '') + '>' + SVG.more + '<span>More</span></a>';
 
     /* Use View Transition navigate when supported */
     setTimeout(function () {
